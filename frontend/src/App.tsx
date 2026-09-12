@@ -8,13 +8,20 @@ import {
 } from "./services/materialService";
 import { MaterialList } from "./components/MaterialList";
 
+type SearchCriteria = {
+  job: string;
+  minLevel: number;
+  maxLevel: number;
+};
+
 function App() {
   const [craftingMaterials, setCraftingMaterials] =
     useState<Material[]>([]);
 
   const [expandedMaterials, setExpandedMaterials] =
     useState<Material[]>([]);
-
+  const [searchCriteria, setSearchCriteria] =
+    useState<SearchCriteria | null>(null);
 
   const [hasSearched, setHasSearched] = useState<boolean>(false);
 
@@ -33,8 +40,13 @@ function App() {
     if (isSearching.current) {
       return;
     }
-
     isSearching.current = true;
+
+    setLoading(true);
+    setError(null);
+    setHasSearched(false);
+
+
     setLoading(true);
     setError(null);
 
@@ -46,6 +58,12 @@ function App() {
 
       setCraftingMaterials(craftingData);
       setExpandedMaterials(expandedData);
+      setSearchCriteria({
+        job,
+        minLevel,
+        maxLevel,
+      });
+
       setHasSearched(true);
     } catch (error) {
       console.error(error);
@@ -92,6 +110,17 @@ function App() {
 
         {hasSearched && (
           <div className="mt-10 space-y-8">
+            {searchCriteria && (
+              <div>
+                <h2 className="text-xl font-semibold text-white">
+                  {searchCriteria.job}
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Levels {searchCriteria.minLevel}–{searchCriteria.maxLevel}
+                </p>
+              </div>
+            )}
             <MaterialList
               title="Craft These"
               materials={craftingMaterials}

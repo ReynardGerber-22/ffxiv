@@ -9,6 +9,11 @@ export const MaterialList = ({
     title,
     materials,
 }: MaterialListProps) => {
+    
+    const sortedMaterials = [...materials].sort((a, b) =>
+        a.name.localeCompare(b.name)
+    );
+
     return (
         <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
             <div className="border-b border-slate-800 px-6 py-4">
@@ -21,7 +26,7 @@ export const MaterialList = ({
             </div>
 
             <ul className="divide-y divide-slate-800">
-                {materials.map((material) => (
+                {sortedMaterials.map((material) => (
                     <li
                         key={material.id}
                         className="flex items-center justify-between px-6 py-3 transition-colors hover:bg-slate-800/50"

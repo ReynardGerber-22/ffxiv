@@ -80,4 +80,17 @@ class CraftingController extends Controller
             ],
         ]);
     }
+
+    public function craftingMaterials(
+        Request $request,
+        XivApiService $xivApi
+    ): array {
+        $validated = $this->validateCraftingRequest($request);
+
+        return $xivApi->getCraftingMaterialList(
+            $this->jobMap[$validated['job']],
+            $validated['minLevel'],
+            $validated['maxLevel']
+        );
+    }
 }

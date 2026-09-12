@@ -17,3 +17,8 @@ Route::get('/expanded-materials', [
     CraftingController::class,
     'expandedMaterials',
 ]);
+
+Route::get('/crafting-materials', [
+    CraftingController::class,
+    'craftingMaterials',
+]);

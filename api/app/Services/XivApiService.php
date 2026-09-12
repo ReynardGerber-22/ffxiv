@@ -309,4 +309,99 @@ class XivApiService
 
         return $results;
     }
+
+    public function getCraftingMaterialList(
+        string $job,
+        int $minLevel,
+        int $maxLevel
+    ): array {
+        $materials = $this->getMaterialList(
+            $job,
+            $minLevel,
+            $maxLevel
+        );
+
+        $pending = [];
+
+        foreach ($materials as $material) {
+            $pending[$material['id']] = $material;
+        }
+
+        /*
+     * Materials that we discover can themselves
+     * be crafted.
+     */
+        $craftingMaterials = [];
+
+        while (!empty($pending)) {
+            $itemIds = array_keys($pending);
+
+            $recipes = $this->findRecipesByItemIds(
+                $itemIds,
+                $job
+            );
+
+            $nextPending = [];
+
+            foreach ($pending as $itemId => $material) {
+                /*
+             * If there is no recipe for this material,
+             * it's raw and therefore doesn't belong
+             * in our crafting list.
+             */
+                if (!isset($recipes[$itemId])) {
+                    continue;
+                }
+
+                $recipe = $recipes[$itemId];
+
+                $craftsNeeded = (int) ceil(
+                    $material['quantity']
+                        / $recipe['amountResult']
+                );
+
+                $quantityProduced =
+                    $craftsNeeded * $recipe['amountResult'];
+
+                if (isset($craftingMaterials[$itemId])) {
+                    $craftingMaterials[$itemId]['quantity'] +=
+                        $quantityProduced;
+                } else {
+                    $craftingMaterials[$itemId] = [
+                        'id' => $material['id'],
+                        'name' => $material['name'],
+                        'quantity' => $quantityProduced,
+                    ];
+                }
+
+                /*
+             * Continue down another layer so we also
+             * discover craftable ingredients needed
+             * by this material.
+             */
+                foreach ($recipe['ingredients'] as $ingredient) {
+                    $ingredientId = $ingredient['id'];
+
+                    $quantity =
+                        $ingredient['quantity']
+                        * $craftsNeeded;
+
+                    if (isset($nextPending[$ingredientId])) {
+                        $nextPending[$ingredientId]['quantity'] +=
+                            $quantity;
+                    } else {
+                        $nextPending[$ingredientId] = [
+                            'id' => $ingredientId,
+                            'name' => $ingredient['name'],
+                            'quantity' => $quantity,
+                        ];
+                    }
+                }
+            }
+
+            $pending = $nextPending;
+        }
+
+        return array_values($craftingMaterials);
+    }
 }

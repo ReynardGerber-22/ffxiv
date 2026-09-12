@@ -12,8 +12,26 @@ export const CraftingSearch = ({ onSearch }: CraftingSearchProps) => {
     const [job, setJob] = useState<string>("Blacksmith");
     const [minLevel, setMinLevel] = useState<number>(1);
     const [maxLevel, setMaxLevel] = useState<number>(10);
+    const [error, setError] = useState<string | null>(null);
 
     const submitSearch = () => {
+        if (minLevel < 1 || maxLevel < 1) {
+            setError("Levels must be at least 1.");
+            return;
+        }
+
+        if (minLevel > 100 || maxLevel > 100) {
+            setError("Levels cannot be higher than 100.");
+            return;
+        }
+
+        if (minLevel > maxLevel) {
+            setError("Minimum level cannot be higher than maximum level.");
+            return;
+        }
+
+        setError(null);
+
         onSearch(job, minLevel, maxLevel);
     };
 
@@ -41,6 +59,8 @@ export const CraftingSearch = ({ onSearch }: CraftingSearchProps) => {
             <label>
                 Min Level
                 <input
+                    min={1}
+                    max={100}
                     type="number"
                     value={minLevel}
                     onChange={(event) => {
@@ -52,6 +72,8 @@ export const CraftingSearch = ({ onSearch }: CraftingSearchProps) => {
             <label>
                 Max Level
                 <input
+                    min={1}
+                    max={100}
                     type="number"
                     value={maxLevel}
                     onChange={(event) => {
@@ -63,6 +85,7 @@ export const CraftingSearch = ({ onSearch }: CraftingSearchProps) => {
             <button onClick={submitSearch}>
                 Calculate Materials
             </button>
+            {error && <p>{error}</p>}
         </div>
     );
 };

@@ -15,18 +15,32 @@ function App() {
   const [expandedMaterials, setExpandedMaterials] =
     useState<Material[]>([]);
 
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
   const searchMaterials = async (
     job: string,
     minLevel: number,
     maxLevel: number
   ) => {
-    const [craftingData, expandedData] = await Promise.all([
-      getCraftingMaterials(job, minLevel, maxLevel),
-      getExpandedMaterials(job, minLevel, maxLevel),
-    ]);
+    setLoading(true);
+    setError(null);
 
-    setCraftingMaterials(craftingData);
-    setExpandedMaterials(expandedData);
+    try {
+      const [craftingData, expandedData] = await Promise.all([
+        getCraftingMaterials(job, minLevel, maxLevel),
+        getExpandedMaterials(job, minLevel, maxLevel),
+      ]);
+
+      setCraftingMaterials(craftingData);
+      setExpandedMaterials(expandedData);
+    } catch (error) {
+      console.error(error);
+
+      setError("Something went wrong while calculating materials.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const crystals = expandedMaterials.filter((material) =>
@@ -45,6 +59,9 @@ function App() {
   return (
     <main>
       <CraftingSearch onSearch={searchMaterials} />
+      {loading && <p>Calculating materials...</p>}
+      {error && <p>{error}</p>}
+
       <MaterialList
         title="Craft These"
         materials={craftingMaterials}

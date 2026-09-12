@@ -1,72 +1,64 @@
 import { useState } from "react";
 import type { Material } from "./types/Material";
-import { RecipeSearch } from "./components/RecipeSearch";
+import { CraftingSearch } from "./components/CraftingSearch";
+
 import {
-  getMaterials,
+  getCraftingMaterials,
   getExpandedMaterials,
 } from "./services/materialService";
+import { MaterialList } from "./components/MaterialList";
 
 function App() {
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [expandedMaterials, setExpandedMaterials] = useState<Material[]>([]);
+  const [craftingMaterials, setCraftingMaterials] =
+    useState<Material[]>([]);
+
+  const [expandedMaterials, setExpandedMaterials] =
+    useState<Material[]>([]);
 
   const searchMaterials = async (
     job: string,
     minLevel: number,
     maxLevel: number
   ) => {
-    const [materialsData, expandedMaterialsData] = await Promise.all([
-      getMaterials(job, minLevel, maxLevel),
+    const [craftingData, expandedData] = await Promise.all([
+      getCraftingMaterials(job, minLevel, maxLevel),
       getExpandedMaterials(job, minLevel, maxLevel),
     ]);
 
-    setMaterials(materialsData);
-    setExpandedMaterials(expandedMaterialsData);
+    setCraftingMaterials(craftingData);
+    setExpandedMaterials(expandedData);
   };
 
-  const shards = expandedMaterials.filter((material) =>
-    material.name.includes("Shard")
+  const crystals = expandedMaterials.filter((material) =>
+    ["Shard", "Crystal", "Cluster"].some((type) =>
+      material.name.includes(type)
+    )
   );
 
   const rawMaterials = expandedMaterials.filter(
-    (material) => !material.name.includes("Shard")
+    (material) =>
+      !["Shard", "Crystal", "Cluster"].some((type) =>
+        material.name.includes(type)
+      )
   );
 
   return (
     <main>
-      <h1>FFXIV Crafting Planner</h1>
+      <CraftingSearch onSearch={searchMaterials} />
+      <MaterialList
+        title="Craft These"
+        materials={craftingMaterials}
+      />
 
-      <RecipeSearch onSearch={searchMaterials} />
+      <MaterialList
+        title="Raw Materials"
+        materials={rawMaterials}
+      />
 
-      <h2>Materials to Prepare</h2>
-
-      <ul>
-        {materials.map((material) => (
-          <li key={material.id}>
-            {material.name} - {material.quantity}
-          </li>
-        ))}
-      </ul>
-
-      <h2>Raw Materials</h2>
-
-      <ul>
-        {rawMaterials.map((material) => (
-          <li key={material.id}>
-            {material.name} - {material.quantity}
-          </li>
-        ))}
-      </ul>
-
-      <h2>Shards</h2>
-
-      <ul>
-        {shards.map((material) => (
-          <li key={material.id}>
-            {material.name} - {material.quantity}
-          </li>
-        ))}
-      </ul>
+      <MaterialList
+        title="Crystals"
+        materials={crystals}
+      />
     </main>
   );
 }

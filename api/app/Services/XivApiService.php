@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 class XivApiService
 {
     private string $baseUrl = 'https://v2.xivapi.com/api';
-
+    
     public function getRecipes(
         string $job,
         int $minLevel,
@@ -29,11 +29,22 @@ class XivApiService
                 continue;
             }
 
+            /*
+         * V1 only includes normal recipes.
+         *
+         * Star filtering can become configurable
+         * in V2.
+         */
+            if ($recipe['stars'] > 0) {
+                continue;
+            }
+
             $recipes[] = $recipe;
         }
 
         return $recipes;
     }
+
     public function getMaterialList(
         string $job,
         int $minLevel,
@@ -169,6 +180,116 @@ class XivApiService
         return array_values($finalMaterials);
     }
 
+    public function getCraftingMaterialList(
+        string $job,
+        int $minLevel,
+        int $maxLevel
+    ): array {
+        $materials = $this->getMaterialList(
+            $job,
+            $minLevel,
+            $maxLevel
+        );
+
+        /*
+         * Materials that still need to be checked
+         * to see if they have crafting recipes.
+         */
+        $pending = [];
+
+        foreach ($materials as $material) {
+            $pending[$material['id']] = $material;
+        }
+
+        /*
+         * Materials that we discover can themselves
+         * be crafted.
+         */
+        $craftingMaterials = [];
+
+        while (!empty($pending)) {
+            $itemIds = array_keys($pending);
+
+            $recipes = $this->findRecipesByItemIds(
+                $itemIds,
+                $job
+            );
+
+            $nextPending = [];
+
+            foreach ($pending as $itemId => $material) {
+                /*
+                 * If there is no recipe for this material,
+                 * it is raw and therefore doesn't belong
+                 * in our crafting list.
+                 */
+                if (!isset($recipes[$itemId])) {
+                    continue;
+                }
+
+                $recipe = $recipes[$itemId];
+
+                /*
+                 * Work out how many crafts are required.
+                 */
+                $craftsNeeded = (int) ceil(
+                    $material['quantity']
+                        / $recipe['amountResult']
+                );
+
+                /*
+                 * Work out how many items those crafts
+                 * will actually produce.
+                 */
+                $quantityProduced =
+                    $craftsNeeded
+                    * $recipe['amountResult'];
+
+                /*
+                 * Record the craftable material.
+                 */
+                if (isset($craftingMaterials[$itemId])) {
+                    $craftingMaterials[$itemId]['quantity'] +=
+                        $quantityProduced;
+                } else {
+                    $craftingMaterials[$itemId] = [
+                        'id' => $material['id'],
+                        'name' => $material['name'],
+                        'quantity' => $quantityProduced,
+                    ];
+                }
+
+                /*
+                 * Continue down another layer so we also
+                 * discover craftable ingredients needed
+                 * by this material.
+                 */
+                foreach ($recipe['ingredients'] as $ingredient) {
+                    $ingredientId = $ingredient['id'];
+
+                    $quantity =
+                        $ingredient['quantity']
+                        * $craftsNeeded;
+
+                    if (isset($nextPending[$ingredientId])) {
+                        $nextPending[$ingredientId]['quantity'] +=
+                            $quantity;
+                    } else {
+                        $nextPending[$ingredientId] = [
+                            'id' => $ingredientId,
+                            'name' => $ingredient['name'],
+                            'quantity' => $quantity,
+                        ];
+                    }
+                }
+            }
+
+            $pending = $nextPending;
+        }
+
+        return array_values($craftingMaterials);
+    }
+
     public function findRecipesByItemIds(
         array $itemIds,
         string $preferredJob
@@ -184,6 +305,16 @@ class XivApiService
             $itemIds
         );
 
+        /*
+         * Important:
+         *
+         * We do NOT filter by Stars here.
+         *
+         * This method is used for recursive ingredient
+         * expansion, so we want to find a recipe for an
+         * intermediate material even if that recipe is
+         * starred.
+         */
         $rows = $this->searchRecipes($conditions);
 
         $recipes = [];
@@ -197,11 +328,18 @@ class XivApiService
 
             $itemId = $recipe['itemId'];
 
+            /*
+             * Use the first recipe found by default.
+             */
             if (!isset($recipes[$itemId])) {
                 $recipes[$itemId] = $recipe;
                 continue;
             }
 
+            /*
+             * If multiple recipes exist for the same item,
+             * prefer the recipe belonging to the selected job.
+             */
             if ($recipe['job'] === $preferredJob) {
                 $recipes[$itemId] = $recipe;
             }
@@ -253,6 +391,13 @@ class XivApiService
             $fields['RecipeLevelTable']['fields']['ClassJobLevel']
                 ?? 0,
 
+            /*
+             * Kept for future V2 star filtering.
+             */
+            'stars' =>
+            $fields['RecipeLevelTable']['fields']['Stars']
+                ?? 0,
+
             'amountResult' =>
             $fields['AmountResult']
                 ?? 1,
@@ -266,7 +411,7 @@ class XivApiService
         return implode(',', [
             'ItemResult.Name',
             'RecipeLevelTable.ClassJobLevel',
-            'RecipeLevelTable.ConditionsFlag',
+            'RecipeLevelTable.Stars',
             'CraftType',
             'Ingredient[].Name',
             'AmountIngredient',
@@ -308,100 +453,5 @@ class XivApiService
         } while ($cursor !== null);
 
         return $results;
-    }
-
-    public function getCraftingMaterialList(
-        string $job,
-        int $minLevel,
-        int $maxLevel
-    ): array {
-        $materials = $this->getMaterialList(
-            $job,
-            $minLevel,
-            $maxLevel
-        );
-
-        $pending = [];
-
-        foreach ($materials as $material) {
-            $pending[$material['id']] = $material;
-        }
-
-        /*
-     * Materials that we discover can themselves
-     * be crafted.
-     */
-        $craftingMaterials = [];
-
-        while (!empty($pending)) {
-            $itemIds = array_keys($pending);
-
-            $recipes = $this->findRecipesByItemIds(
-                $itemIds,
-                $job
-            );
-
-            $nextPending = [];
-
-            foreach ($pending as $itemId => $material) {
-                /*
-             * If there is no recipe for this material,
-             * it's raw and therefore doesn't belong
-             * in our crafting list.
-             */
-                if (!isset($recipes[$itemId])) {
-                    continue;
-                }
-
-                $recipe = $recipes[$itemId];
-
-                $craftsNeeded = (int) ceil(
-                    $material['quantity']
-                        / $recipe['amountResult']
-                );
-
-                $quantityProduced =
-                    $craftsNeeded * $recipe['amountResult'];
-
-                if (isset($craftingMaterials[$itemId])) {
-                    $craftingMaterials[$itemId]['quantity'] +=
-                        $quantityProduced;
-                } else {
-                    $craftingMaterials[$itemId] = [
-                        'id' => $material['id'],
-                        'name' => $material['name'],
-                        'quantity' => $quantityProduced,
-                    ];
-                }
-
-                /*
-             * Continue down another layer so we also
-             * discover craftable ingredients needed
-             * by this material.
-             */
-                foreach ($recipe['ingredients'] as $ingredient) {
-                    $ingredientId = $ingredient['id'];
-
-                    $quantity =
-                        $ingredient['quantity']
-                        * $craftsNeeded;
-
-                    if (isset($nextPending[$ingredientId])) {
-                        $nextPending[$ingredientId]['quantity'] +=
-                            $quantity;
-                    } else {
-                        $nextPending[$ingredientId] = [
-                            'id' => $ingredientId,
-                            'name' => $ingredient['name'],
-                            'quantity' => $quantity,
-                        ];
-                    }
-                }
-            }
-
-            $pending = $nextPending;
-        }
-
-        return array_values($craftingMaterials);
     }
 }

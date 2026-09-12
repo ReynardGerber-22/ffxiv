@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-type RecipeSearchProps = {
+type CraftingSearchProps = {
     onSearch: (
         job: string,
         minLevel: number,
@@ -8,7 +8,7 @@ type RecipeSearchProps = {
     ) => void;
 };
 
-export const RecipeSearch = ({ onSearch }: RecipeSearchProps) => {
+export const CraftingSearch = ({ onSearch }: CraftingSearchProps) => {
     const [job, setJob] = useState<string>("Blacksmith");
     const [minLevel, setMinLevel] = useState<number>(1);
     const [maxLevel, setMaxLevel] = useState<number>(10);
@@ -61,7 +61,7 @@ export const RecipeSearch = ({ onSearch }: RecipeSearchProps) => {
             </label>
 
             <button onClick={submitSearch}>
-                Search Recipes
+                Calculate Materials
             </button>
         </div>
     );

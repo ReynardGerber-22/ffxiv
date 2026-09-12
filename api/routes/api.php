@@ -1,14 +1,19 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\CraftingController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/test', function () {
-    return response()->json([
-        'message' => 'FFXIV Crafting Planner API is working!'
-    ]);
-});
+Route::get('/recipes', [
+    CraftingController::class,
+    'recipes',
+]);
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::get('/materials', [
+    CraftingController::class,
+    'materials',
+]);
+
+Route::get('/expanded-materials', [
+    CraftingController::class,
+    'expandedMaterials',
+]);

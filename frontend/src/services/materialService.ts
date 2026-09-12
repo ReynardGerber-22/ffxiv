@@ -1,6 +1,8 @@
 import type { Material } from "../types/Material";
+const API_URL = import.meta.env.VITE_API_URL;
 
-export const getCraftingMaterials = async (
+const getMaterials = async (
+    endpoint: string,
     job: string,
     minLevel: number,
     maxLevel: number
@@ -12,11 +14,11 @@ export const getCraftingMaterials = async (
     });
 
     const response = await fetch(
-        `http://localhost:8080/api/crafting-materials?${params.toString()}`
+        `${API_URL}${endpoint}?${params.toString()}`
     );
 
     if (!response.ok) {
-        throw new Error("Failed to fetch crafting materials.");
+        throw new Error(`Failed to fetch materials from ${endpoint}.`);
     }
 
     const materials: Material[] = await response.json();
@@ -24,26 +26,28 @@ export const getCraftingMaterials = async (
     return materials;
 };
 
-export const getExpandedMaterials = async (
+export const getCraftingMaterials = (
     job: string,
     minLevel: number,
     maxLevel: number
 ): Promise<Material[]> => {
-    const params = new URLSearchParams({
+    return getMaterials(
+        "/api/crafting-materials",
         job,
-        minLevel: minLevel.toString(),
-        maxLevel: maxLevel.toString(),
-    });
-
-    const response = await fetch(
-        `http://localhost:8080/api/expanded-materials?${params.toString()}`
+        minLevel,
+        maxLevel
     );
+};
 
-    if (!response.ok) {
-        throw new Error("Failed to fetch expanded materials.");
-    }
-
-    const materials: Material[] = await response.json();
-
-    return materials;
+export const getExpandedMaterials = (
+    job: string,
+    minLevel: number,
+    maxLevel: number
+): Promise<Material[]> => {
+    return getMaterials(
+        "/api/expanded-materials",
+        job,
+        minLevel,
+        maxLevel
+    );
 };

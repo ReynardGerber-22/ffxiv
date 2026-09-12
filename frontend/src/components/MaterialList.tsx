@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { Material } from "../types/Material";
 
 type MaterialListProps = {
@@ -9,9 +10,13 @@ export const MaterialList = ({
     title,
     materials,
 }: MaterialListProps) => {
-    
-    const sortedMaterials = [...materials].sort((a, b) =>
-        a.name.localeCompare(b.name)
+
+    const sortedMaterials = useMemo(
+        () =>
+            [...materials].sort((a, b) =>
+                a.name.localeCompare(b.name)
+            ),
+        [materials]
     );
 
     return (
@@ -20,7 +25,7 @@ export const MaterialList = ({
                 <h2 className="text-lg font-semibold text-white">
                     {title}
                     <span className="ml-2 text-sm font-normal text-slate-400">
-                        ({materials.length})
+                        ({sortedMaterials.length})
                     </span>
                 </h2>
             </div>

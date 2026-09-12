@@ -5,19 +5,22 @@ type CraftingSearchProps = {
         job: string,
         minLevel: number,
         maxLevel: number
-    ) => void;
+    ) => Promise<void>;
     loading: boolean;
-};;
+};
+
+const inputClasses =
+    "rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20";
 
 export const CraftingSearch = ({ onSearch, loading }: CraftingSearchProps) => {
-    const [job, setJob] = useState<string>("Blacksmith");
-    const [minLevel, setMinLevel] = useState<string>("1");
-    const [maxLevel, setMaxLevel] = useState<string>("10");
+    const [job, setJob] = useState("Blacksmith");
+    const [minLevel, setMinLevel] = useState("1");
+    const [maxLevel, setMaxLevel] = useState("10");
     const [error, setError] = useState<string | null>(null);
 
     const submitSearch: SubmitEventHandler<HTMLFormElement> = (event) => {
         event.preventDefault();
-        
+
         if (minLevel === "" || maxLevel === "") {
             setError("Please enter both a minimum and maximum level.");
             return;
@@ -57,7 +60,7 @@ export const CraftingSearch = ({ onSearch, loading }: CraftingSearchProps) => {
                     </span>
 
                     <select
-                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        className={inputClasses}
                         value={job}
                         onChange={(event) => {
                             setJob(event.target.value);
@@ -80,7 +83,7 @@ export const CraftingSearch = ({ onSearch, loading }: CraftingSearchProps) => {
                     </span>
 
                     <input
-                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        className={inputClasses}
                         min={1}
                         max={100}
                         type="number"
@@ -97,7 +100,7 @@ export const CraftingSearch = ({ onSearch, loading }: CraftingSearchProps) => {
                     </span>
 
                     <input
-                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        className={inputClasses}
                         min={1}
                         max={100}
                         type="number"

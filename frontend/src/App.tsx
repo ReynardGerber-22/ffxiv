@@ -14,23 +14,26 @@ type SearchCriteria = {
   maxLevel: number;
 };
 
+const crystalTypes = ["Shard", "Crystal", "Cluster"];
+
+const isCrystal = (material: Material) =>
+  crystalTypes.some((type) => material.name.includes(type));
+
 function App() {
   const [craftingMaterials, setCraftingMaterials] =
     useState<Material[]>([]);
 
   const [expandedMaterials, setExpandedMaterials] =
     useState<Material[]>([]);
+
   const [searchCriteria, setSearchCriteria] =
     useState<SearchCriteria | null>(null);
 
-  const [hasSearched, setHasSearched] = useState<boolean>(false);
-
-
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isSearching = useRef(false);
 
-  const isSearching = useRef<boolean>(false);
 
   const searchMaterials = async (
     job: string,
@@ -41,14 +44,9 @@ function App() {
       return;
     }
     isSearching.current = true;
-
     setLoading(true);
     setError(null);
-    setHasSearched(false);
-
-
-    setLoading(true);
-    setError(null);
+    setSearchCriteria(null)
 
     try {
       const [craftingData, expandedData] = await Promise.all([
@@ -64,7 +62,6 @@ function App() {
         maxLevel,
       });
 
-      setHasSearched(true);
     } catch (error) {
       console.error(error);
       setError("Something went wrong while calculating materials.");
@@ -73,18 +70,16 @@ function App() {
       setLoading(false);
     }
   };
-  const crystals = expandedMaterials.filter((material) =>
-    ["Shard", "Crystal", "Cluster"].some((type) =>
-      material.name.includes(type)
-    )
-  );
+  const crystals: Material[] = [];
+  const rawMaterials: Material[] = [];
 
-  const rawMaterials = expandedMaterials.filter(
-    (material) =>
-      !["Shard", "Crystal", "Cluster"].some((type) =>
-        material.name.includes(type)
-      )
-  );
+  expandedMaterials.forEach((material) => {
+    if (isCrystal(material)) {
+      crystals.push(material);
+    } else {
+      rawMaterials.push(material);
+    }
+  });
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
@@ -108,19 +103,18 @@ function App() {
           </p>
         )}
 
-        {hasSearched && (
+        {searchCriteria && (
           <div className="mt-10 space-y-8">
-            {searchCriteria && (
-              <div>
-                <h2 className="text-xl font-semibold text-white">
-                  {searchCriteria.job}
-                </h2>
+            <div>
+              <h2 className="text-xl font-semibold text-white">
+                {searchCriteria.job}
+              </h2>
 
-                <p className="mt-1 text-sm text-slate-400">
-                  Levels {searchCriteria.minLevel}–{searchCriteria.maxLevel}
-                </p>
-              </div>
-            )}
+              <p className="mt-1 text-sm text-slate-400">
+                Levels {searchCriteria.minLevel}–{searchCriteria.maxLevel}
+              </p>
+            </div>
+
             <MaterialList
               title="Craft These"
               materials={craftingMaterials}

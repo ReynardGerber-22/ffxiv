@@ -1,0 +1,67 @@
+services:
+  php:
+    build:
+      context: ./api
+      dockerfile: ../dev/php/Dockerfile.prod
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ffxiv
+      DB_USERNAME: ffxiv
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+  api-nginx:
+    build:
+      context: ./api
+      dockerfile: ../dev/nginx/Dockerfile.prod
+    volumes:
+      - ./dev/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ffxiv
+      MYSQL_USER: ffxiv
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../dev/frontend/Dockerfile.prod
+    ports:
+      - "80:80"
+    volumes:
+      - ./dev/frontend/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api-nginx:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  mysql_data:

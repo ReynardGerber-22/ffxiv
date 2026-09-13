@@ -22,3 +22,9 @@ Route::get('/crafting-materials', [
     CraftingController::class,
     'craftingMaterials',
 ]);
+
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+    ]);
+});

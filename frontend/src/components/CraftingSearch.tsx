@@ -1,6 +1,9 @@
 import { useState, type SubmitEventHandler } from "react";
 
+import type { SearchCriteria } from "../services/plannerStorage";
+
 type CraftingSearchProps = {
+    initialCriteria?: SearchCriteria;
     onSearch: (
         job: string,
         minLevel: number,
@@ -12,10 +15,10 @@ type CraftingSearchProps = {
 const inputClasses =
     "rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20";
 
-export const CraftingSearch = ({ onSearch, loading }: CraftingSearchProps) => {
-    const [job, setJob] = useState("Blacksmith");
-    const [minLevel, setMinLevel] = useState("1");
-    const [maxLevel, setMaxLevel] = useState("10");
+export const CraftingSearch = ({ onSearch, loading, initialCriteria }: CraftingSearchProps) => {
+    const [job, setJob] = useState(initialCriteria?.job ?? "Blacksmith");
+    const [minLevel, setMinLevel] = useState(String(initialCriteria?.minLevel ?? 1));
+    const [maxLevel, setMaxLevel] = useState(String(initialCriteria?.maxLevel ?? 10));
     const [error, setError] = useState<string | null>(null);
 
     const submitSearch: SubmitEventHandler<HTMLFormElement> = (event) => {

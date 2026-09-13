@@ -8,11 +8,7 @@ import {
 } from "./services/materialService";
 import { MaterialList } from "./components/MaterialList";
 
-type SearchCriteria = {
-  job: string;
-  minLevel: number;
-  maxLevel: number;
-};
+import { loadPlan, savePlan, progressKey, type SearchCriteria } from "./services/plannerStorage";
 
 const crystalTypes = ["Shard", "Crystal", "Cluster"];
 
@@ -20,14 +16,16 @@ const isCrystal = (material: Material) =>
   crystalTypes.some((type) => material.name.includes(type));
 
 function App() {
+  const [savedPlan] = useState(loadPlan);
+  const [storageError, setStorageError] = useState(false);
   const [craftingMaterials, setCraftingMaterials] =
-    useState<Material[]>([]);
+    useState<Material[]>(savedPlan?.craftingMaterials ?? []);
 
   const [expandedMaterials, setExpandedMaterials] =
-    useState<Material[]>([]);
+    useState<Material[]>(savedPlan?.expandedMaterials ?? []);
 
   const [searchCriteria, setSearchCriteria] =
-    useState<SearchCriteria | null>(null);
+    useState<SearchCriteria | null>(savedPlan?.criteria ?? null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,11 +54,9 @@ function App() {
 
       setCraftingMaterials(craftingData);
       setExpandedMaterials(expandedData);
-      setSearchCriteria({
-        job,
-        minLevel,
-        maxLevel,
-      });
+      const criteria = { job, minLevel, maxLevel };
+      setSearchCriteria(criteria);
+      setStorageError(!savePlan({ criteria, craftingMaterials: craftingData, expandedMaterials: expandedData }));
 
     } catch (error) {
       console.error(error);
@@ -95,7 +91,9 @@ function App() {
           </p>
         </header>
 
-        <CraftingSearch loading={loading} onSearch={searchMaterials} />
+        <CraftingSearch loading={loading} onSearch={searchMaterials} initialCriteria={savedPlan?.criteria} />
+
+        {storageError && <p className="mt-4 text-amber-400">Your browser could not save this plan. It may not be restored after a reload.</p>}
 
         {error && (
           <p className="mt-6 text-red-400">
@@ -116,18 +114,24 @@ function App() {
             </div>
 
             <MaterialList
-              title="Craft These"
-              materials={craftingMaterials}
-            />
-
-            <MaterialList
               title="Raw Materials"
+              key={progressKey(searchCriteria, "raw")}
+              storageKey={progressKey(searchCriteria, "raw")}
               materials={rawMaterials}
             />
 
             <MaterialList
               title="Crystals"
+              key={progressKey(searchCriteria, "crystals")}
+              storageKey={progressKey(searchCriteria, "crystals")}
               materials={crystals}
+            />
+
+            <MaterialList
+              title="Craft These"
+              key={progressKey(searchCriteria, "crafting")}
+              storageKey={progressKey(searchCriteria, "crafting")}
+              materials={craftingMaterials}
             />
           </div>
         )}

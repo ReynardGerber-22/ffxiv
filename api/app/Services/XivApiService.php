@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 class XivApiService
 {
     private string $baseUrl = 'https://v2.xivapi.com/api';
-    
+
     public function getRecipes(
         string $job,
         int $minLevel,
@@ -453,5 +453,220 @@ class XivApiService
         } while ($cursor !== null);
 
         return $results;
+    }
+
+    public function getItem(int $itemId): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/sheet/Item/' . $itemId,
+            [
+                'fields' => 'Name',
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function findGatheringItemsByItemId(int $itemId): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/search',
+            [
+                'sheets' => 'GatheringItem',
+                'query' => 'Item=' . $itemId,
+                'fields' => 'Item.Name',
+                'limit' => 100,
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+    public function getGatheringItem(int $gatheringItemId): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/sheet/GatheringItem/' . $gatheringItemId
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function findGatheringItemPoints(int $gatheringItemId): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/search',
+            [
+                'sheets' => 'GatheringItemPoint',
+                'query' => 'GatheringItem=' . $gatheringItemId,
+                'limit' => 100,
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+    public function getGatheringPointBase(int $id): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/sheet/GatheringPointBase/' . $id
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+    public function getGatheringPointBases(): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/sheet/GatheringPointBase',
+            [
+                'fields' => implode(',', [
+                    'GatheringLevel',
+                    'GatheringType.Name',
+                    'Item@as(raw)',
+                ]),
+                'limit' => 10,
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function findGatheringPointBasesByGatheringItemId(
+        int $gatheringItemId
+    ): array {
+        $response = Http::get(
+            $this->baseUrl . '/search',
+            [
+                'sheets' => 'GatheringPointBase',
+                'query' => 'Item[]=' . $gatheringItemId,
+                'fields' => implode(',', [
+                    'GatheringLevel',
+                    'GatheringType.Name',
+                    'Item@as(raw)',
+                ]),
+                'limit' => 100,
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function findGatheringPointsByBaseId(int $baseId): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/search',
+            [
+                'sheets' => 'GatheringPoint',
+                'query' => 'GatheringPointBase=' . $baseId,
+                'fields' => implode(',', [
+                    'GatheringPointBase@as(raw)',
+                    'PlaceName.Name',
+                    'TerritoryType.PlaceName.Name',
+                    'TerritoryType.Map@as(raw)',
+                ]),
+                'limit' => 100,
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function getGatheringPoint(int $id): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/sheet/GatheringPoint/' . $id,
+            [
+                'fields' => implode(',', [
+                    'GatheringPointBase@as(raw)',
+                    'PlaceName.Name',
+                    'TerritoryType@as(raw)',
+                    'TerritoryType.PlaceName.Name',
+                    'TerritoryType.Map@as(raw)',
+                ]),
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function getMap(int $id): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/sheet/Map/' . $id,
+            [
+                'fields' => implode(',', [
+                    'PlaceName.Name',
+                    'TerritoryType@as(raw)',
+                    'SizeFactor',
+                    'OffsetX',
+                    'OffsetY',
+                ]),
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function getGatheringPointPosition(int $id): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/sheet/GatheringPoint/' . $id,
+            [
+                'fields' => implode(',', [
+                    'X',
+                    'Y',
+                    'Radius',
+                    'PlaceName.Name',
+                    'TerritoryType@as(raw)',
+                    'GatheringPointBase@as(raw)',
+                ]),
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function getExportedGatheringPoints(): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/sheet/ExportedGatheringPoint',
+            [
+                'limit' => 5,
+            ]
+        );
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function getExportedGatheringPoint(int $id): array
+    {
+        $response = Http::get(
+            $this->baseUrl . '/sheet/ExportedGatheringPoint/' . $id
+        );
+
+        $response->throw();
+
+        return $response->json();
     }
 }

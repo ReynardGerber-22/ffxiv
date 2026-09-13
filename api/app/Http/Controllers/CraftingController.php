@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\XivApiService;
 use Illuminate\Http\Request;
+use App\Services\GatheringService;
+use App\Services\GatheringSyncService;
 
 class CraftingController extends Controller
 {
@@ -46,15 +48,18 @@ class CraftingController extends Controller
 
     public function expandedMaterials(
         Request $request,
-        XivApiService $xivApi
+        XivApiService $xivApi,
+        GatheringService $gatheringService,
+        GatheringSyncService $gatheringSyncService
     ): array {
         $validated = $this->validateCraftingRequest($request);
 
-        return $xivApi->getExpandedMaterialList(
+        $materials = $xivApi->getExpandedMaterialList(
             $this->jobMap[$validated['job']],
             $validated['minLevel'],
             $validated['maxLevel']
         );
+        return $gatheringService->enrichMaterials($materials);
     }
 
     private function validateCraftingRequest(Request $request): array

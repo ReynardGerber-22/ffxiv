@@ -18,6 +18,7 @@ export const MaterialList = ({
 }: MaterialListProps) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const [sortOrder, setSortOrder] = useState<SortOrder>("name-asc");
+    const [expandedGathering, setExpandedGathering] = useState<Record<number, boolean>>({});
     const listId = useId();
     const [storageError, setStorageError] = useState(false);
 
@@ -46,22 +47,22 @@ export const MaterialList = ({
     );
 
     const cycleStatus = (materialId: number) => {
-            const status = materialStatuses[materialId] ?? "default";
+        const status = materialStatuses[materialId] ?? "default";
 
-            const nextStatus: MaterialStatus =
-                status === "default"
-                    ? "collecting"
-                    : status === "collecting"
-                        ? "collected"
-                        : "default";
+        const nextStatus: MaterialStatus =
+            status === "default"
+                ? "collecting"
+                : status === "collecting"
+                    ? "collected"
+                    : "default";
 
-            const next = {
-                ...materialStatuses,
-                [materialId]: nextStatus,
-            };
-            if (nextStatus === "default") delete next[materialId];
-            setMaterialStatuses(next);
-            setStorageError(!saveValue(storageKey, next));
+        const next = {
+            ...materialStatuses,
+            [materialId]: nextStatus,
+        };
+        if (nextStatus === "default") delete next[materialId];
+        setMaterialStatuses(next);
+        setStorageError(!saveValue(storageKey, next));
     };
 
     return (
@@ -129,49 +130,91 @@ export const MaterialList = ({
 
             <ul id={listId} hidden={!isExpanded} className="divide-y divide-slate-800 border-t border-slate-800">
                 {sortedMaterials.map((material) => {
-
-                    const status =
-                        materialStatuses[material.id] ?? "default";
+                    const status = materialStatuses[material.id] ?? "default";
+                    const isGatheringExpanded = expandedGathering[material.id] ?? false;
+                    const gatheringNodes = material.gathering ?? [];
+                    const visibleNodes = isGatheringExpanded ? gatheringNodes : gatheringNodes.slice(0, 2);
+                    const hiddenNodeCount = gatheringNodes.length > 2 ? Math.max(gatheringNodes.length - 2, 0) : 0;
 
                     return (
                         <li key={material.id}>
-                            <button
-                                type="button"
-                                onClick={() => cycleStatus(material.id)}
-                                className={`grid w-full grid-cols-[minmax(0,1fr)_5rem_7ch] items-center gap-3 px-6 py-3 text-left transition-colors ${status === "collecting"
-                                    ? "bg-amber-950/40 hover:bg-amber-950/60"
-                                    : status === "collected"
-                                        ? "bg-emerald-950/40 hover:bg-emerald-950/60"
-                                        : "hover:bg-slate-800/50"
-                                    }`}
-                            >
-                                    <span
-                                        className={`min-w-0 break-words ${
-                                            status === "collected"
-                                                ? "text-slate-500 line-through"
-                                                : "text-slate-200"
-                                        }`}
-                                    >
-                                        {material.name}
-                                    </span>
-
-                                <span
-                                    className={`text-xs font-medium ${status === "collecting"
-                                        ? "text-amber-400"
-                                        : "text-emerald-400"
+                            <div className="border-b border-slate-800 last:border-b-0">
+                                <button
+                                    type="button"
+                                    onClick={() => cycleStatus(material.id)}
+                                    className={`grid w-full grid-cols-[minmax(0,1fr)_5rem_7ch] items-center gap-3 px-6 py-3 text-left transition-colors ${status === "collecting"
+                                        ? "bg-amber-950/40 hover:bg-amber-950/60"
+                                        : status === "collected"
+                                            ? "bg-emerald-950/40 hover:bg-emerald-950/60"
+                                            : "hover:bg-slate-800/50"
                                         }`}
                                 >
-                                    {status === "collecting"
-                                        ? "Collecting"
-                                        : status === "collected"
-                                            ? "Collected"
-                                            : ""}
-                                </span>
+                                    <div className="min-w-0">
+                                        <span
+                                            className={`block break-words ${status === "collected"
+                                                ? "text-slate-500 line-through"
+                                                : "text-slate-200"
+                                                }`}
+                                        >
+                                            {material.name}
+                                        </span>
 
-                                <span className="justify-self-end rounded-md bg-slate-800 px-2 py-1 text-sm font-semibold tabular-nums text-slate-200">
-                                    ×{material.quantity}
-                                </span>
-                            </button>
+                                        {visibleNodes.map((node, index) => (
+                                            <div
+                                                key={`${material.id}-${index}`}
+                                                className={`mt-1 text-xs ${status === "collected"
+                                                    ? "text-slate-600"
+                                                    : "text-slate-400"
+                                                    }`}
+                                            >
+                                                <span className="font-medium text-slate-300">
+                                                    {node.type} · Lv. {node.level}
+                                                </span>
+
+                                                <span className="ml-2">
+                                                    {node.territory} — {node.area}
+                                                </span>
+
+                                                <span className="ml-2 tabular-nums">
+                                                    X: {node.x} Y: {node.y}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <span
+                                        className={`text-xs font-medium ${status === "collecting"
+                                            ? "text-amber-400"
+                                            : "text-emerald-400"
+                                            }`}
+                                    >
+                                        {status === "collecting"
+                                            ? "Collecting"
+                                            : status === "collected"
+                                                ? "Collected"
+                                                : ""}
+                                    </span>
+
+                                    <span className="justify-self-end rounded-md bg-slate-800 px-2 py-1 text-sm font-semibold tabular-nums text-slate-200">
+                                        ×{material.quantity}
+                                    </span>
+                                </button>
+
+                                {gatheringNodes.length > 2 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setExpandedGathering((current) => ({
+                                            ...current,
+                                            [material.id]: !current[material.id],
+                                        }))}
+                                        className="block w-full px-6 pb-3 text-left text-xs text-slate-400 transition-colors hover:text-white"
+                                    >
+                                        {isGatheringExpanded
+                                            ? "Show fewer gathering locations"
+                                            : `+${hiddenNodeCount} more gathering locations`}
+                                    </button>
+                                )}
+                            </div>
                         </li>
                     );
                 })}

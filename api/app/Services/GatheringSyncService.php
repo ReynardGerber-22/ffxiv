@@ -42,6 +42,9 @@ class GatheringSyncService
                 );
             }
         }
+        $item->update([
+            'gathering_checked_at' => now(),
+        ]);
     }
 
     private function syncGatheringNode(
@@ -145,5 +148,22 @@ class GatheringSyncService
         foreach ($missingIds as $itemId) {
             $this->sync($itemId);
         }
+    }
+
+    public function needsSync(int $itemId): bool
+    {
+        $item = \App\Models\Item::find($itemId);
+
+        if ($item === null) {
+            return true;
+        }
+
+        if ($item->gathering_checked_at === null) {
+            return true;
+        }
+
+        return $item->gathering_checked_at->lt(
+            now()->subDays(30)
+        );
     }
 }

@@ -5,9 +5,12 @@ namespace App\Console\Commands;
 use App\Services\GatheringSyncService;
 use App\Services\XivApiService;
 use Illuminate\Console\Command;
+use Throwable;
 
 class SyncGatheringRange extends Command
 {
+
+    private const SYNC_DELAY_MICROSECONDS = 750_000;
     protected $signature = 'gathering:sync-range
         {job}
         {minLevel}
@@ -41,6 +44,14 @@ class SyncGatheringRange extends Command
             return self::FAILURE;
         }
 
+        $stats = [
+            'checked' => 0,
+            'synced' => 0,
+            'fresh' => 0,
+            'crystals' => 0,
+            'failed' => 0,
+        ];
+
         $this->info(
             "Calculating raw materials for {$job} "
                 . "{$minLevel}-{$maxLevel}..."
@@ -59,27 +70,58 @@ class SyncGatheringRange extends Command
         );
 
         foreach ($materials as $material) {
+            $stats['checked']++;
 
             if (
                 str_contains($material['name'], 'Shard') ||
                 str_contains($material['name'], 'Crystal') ||
                 str_contains($material['name'], 'Cluster')
             ) {
-                $this->line(
-                    "Skipping crystal: {$material['name']}"
-                );
+                $stats['crystals']++;
 
+                $this->line("Skipping crystal: {$material['name']}");
                 continue;
             }
-            
+
+            if (!$gatheringSyncService->needsSync($material['id'])) {
+                $stats['fresh']++;
+
+                $this->line("Already fresh: {$material['name']}");
+                continue;
+            }
+
             $this->line(
                 "Syncing {$material['name']} ({$material['id']})..."
             );
 
-            $gatheringSyncService->sync($material['id']);
+            try {
+                $gatheringSyncService->sync($material['id']);
+
+                $stats['synced']++;
+
+                usleep(self::SYNC_DELAY_MICROSECONDS);
+            } catch (Throwable $exception) {
+                $stats['failed']++;
+
+                $this->error(
+                    "Failed: {$material['name']} - {$exception->getMessage()}"
+                );
+            }
         }
+        $this->newLine();
 
         $this->info('Gathering sync complete.');
+
+        $this->table(
+            ['Checked', 'Synced', 'Already Fresh', 'Crystals Skipped', 'Failed'],
+            [[
+                $stats['checked'],
+                $stats['synced'],
+                $stats['fresh'],
+                $stats['crystals'],
+                $stats['failed'],
+            ]]
+        );
 
         return self::SUCCESS;
     }

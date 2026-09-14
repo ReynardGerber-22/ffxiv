@@ -12,6 +12,7 @@ class Item extends Model
     protected $fillable = [
         'id',
         'name',
+        'gathering_checked_at',
     ];
     public function gatheringNodeItems()
     {
@@ -25,5 +26,11 @@ class Item extends Model
             'gathering_node_items'
         )->withPivot('gathering_item_id')
             ->withTimestamps();
+    }
+    protected function casts(): array
+    {
+        return [
+            'gathering_checked_at' => 'datetime',
+        ];
     }
 }

@@ -459,9 +459,7 @@ class XivApiService
     {
         $response = Http::get(
             $this->baseUrl . '/sheet/Item/' . $itemId,
-            [
-                'fields' => 'Name',
-            ]
+            []
         );
 
         $response->throw();
@@ -668,5 +666,27 @@ class XivApiService
         $response->throw();
 
         return $response->json();
+    }
+
+    public function search(string $sheet, string $query, string $fields): array
+    {
+        return Http::get("{$this->baseUrl}/search", [
+            'sheets' => $sheet,
+            'query' => $query,
+            'fields' => $fields,
+        ])->throw()->json();
+    }
+
+    public function getSheetRow(
+        string $sheet,
+        int $rowId,
+        string $fields = '*'
+    ): array {
+        return Http::get(
+            "{$this->baseUrl}/sheet/{$sheet}/{$rowId}",
+            [
+                'fields' => $fields,
+            ]
+        )->throw()->json();
     }
 }

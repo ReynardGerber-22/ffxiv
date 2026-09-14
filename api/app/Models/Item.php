@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\GatheringNode;
 use App\Models\GatheringNodeItem;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Item extends Model
 {
@@ -32,5 +33,10 @@ class Item extends Model
         return [
             'gathering_checked_at' => 'datetime',
         ];
+    }
+
+    public function mobDrops(): HasMany
+    {
+        return $this->hasMany(MobDrop::class);
     }
 }

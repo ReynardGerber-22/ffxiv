@@ -12,4 +12,20 @@ export type Material = {
     name: string;
     quantity: number;
     gathering?: GatheringInfo[];
+    mobDrops?: MobDrop[];
+};
+
+export type MobLocation = {
+  x: number;
+  y: number;
+};
+
+export type MobTerritory = {
+  territory: string;
+  locations: MobLocation[];
+};
+
+export type MobDrop = {
+  mob: string;
+  territories: MobTerritory[];
 };

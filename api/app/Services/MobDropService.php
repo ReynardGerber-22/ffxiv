@@ -13,33 +13,53 @@ class MobDropService
             ->where('item_id', $itemId)
             ->get();
 
-        $locations = [];
+        $bnpcNameIds = $drops
+            ->pluck('bnpc_name_id')
+            ->unique();
+
+        $spawns = MobSpawn::query()
+            ->whereIn('bnpc_name_id', $bnpcNameIds)
+            ->get()
+            ->groupBy('bnpc_name_id');
+
+        $mobs = [];
 
         foreach ($drops as $drop) {
-            $spawns = MobSpawn::query()
-                ->where('bnpc_name_id', $drop->bnpc_name_id)
-                ->get();
+            $mobKey = $drop->mob_name;
 
-            foreach ($spawns as $spawn) {
-                $key = "{$drop->mob_name}-{$spawn->territory_type_id}";
-                if (!isset($locations[$key])) {
-                    $locations[$key] = [
-                        'mob' => $drop->mob_name,
+            if (!isset($mobs[$mobKey])) {
+                $mobs[$mobKey] = [
+                    'mob' => $drop->mob_name,
+                    'territories' => [],
+                ];
+            }
+
+            foreach ($spawns->get($drop->bnpc_name_id, collect()) as $spawn) {
+                $territoryKey = $spawn->territory_type_id;
+
+                if (!isset($mobs[$mobKey]['territories'][$territoryKey])) {
+                    $mobs[$mobKey]['territories'][$territoryKey] = [
                         'territory' => $spawn->territory_name,
                         'locations' => [],
                     ];
                 }
 
-                $locations[$key]['locations'][] = [
+                $mobs[$mobKey]['territories'][$territoryKey]['locations'][] = [
                     'x' => (float) $spawn->x,
                     'y' => (float) $spawn->y,
                 ];
             }
         }
 
-        return array_values($locations);
+        return array_values(
+            array_map(function (array $mob) {
+                $mob['territories'] = array_values($mob['territories']);
+
+                return $mob;
+            }, $mobs)
+        );
     }
-    
+
     public function enrichMaterials(array $materials): array
     {
         $itemIds = array_column($materials, 'id');
@@ -61,28 +81,42 @@ class MobDropService
             ->groupBy('bnpc_name_id');
 
         return array_map(function (array $material) use ($drops, $spawns) {
-            $locations = [];
+            $mobs = [];
 
             foreach ($drops->get($material['id'], collect()) as $drop) {
-                foreach ($spawns->get($drop->bnpc_name_id, collect()) as $spawn) {
-                    $key = "{$drop->mob_name}-{$spawn->territory_type_id}";
+                $mobKey = $drop->mob_name;
 
-                    if (!isset($locations[$key])) {
-                        $locations[$key] = [
-                            'mob' => $drop->mob_name,
+                if (!isset($mobs[$mobKey])) {
+                    $mobs[$mobKey] = [
+                        'mob' => $drop->mob_name,
+                        'territories' => [],
+                    ];
+                }
+
+                foreach ($spawns->get($drop->bnpc_name_id, collect()) as $spawn) {
+                    $territoryKey = $spawn->territory_type_id;
+
+                    if (!isset($mobs[$mobKey]['territories'][$territoryKey])) {
+                        $mobs[$mobKey]['territories'][$territoryKey] = [
                             'territory' => $spawn->territory_name,
                             'locations' => [],
                         ];
                     }
 
-                    $locations[$key]['locations'][] = [
+                    $mobs[$mobKey]['territories'][$territoryKey]['locations'][] = [
                         'x' => (float) $spawn->x,
                         'y' => (float) $spawn->y,
                     ];
                 }
             }
 
-            $material['mobDrops'] = array_values($locations);
+            $material['mobDrops'] = array_values(
+                array_map(function (array $mob) {
+                    $mob['territories'] = array_values($mob['territories']);
+
+                    return $mob;
+                }, $mobs)
+            );
 
             return $material;
         }, $materials);

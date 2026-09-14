@@ -42,6 +42,7 @@ class GatheringSyncService
                 );
             }
         }
+
         $item->update([
             'gathering_checked_at' => now(),
         ]);
@@ -57,20 +58,29 @@ class GatheringSyncService
         $gatheringPoints = $this->xivApiService
             ->findGatheringPointsByBaseId($baseId);
 
-        $firstPoint = $gatheringPoints['results'][0] ?? null;
+        $point = $this->selectBestGatheringPoint(
+            $gatheringPoints['results'] ?? []
+        );
 
-        if ($firstPoint === null) {
+        if ($point === null) {
             return;
         }
 
-        $fields = $firstPoint['fields'];
+        $fields = $point['fields'];
 
-        $areaName = $fields['PlaceName']['fields']['Name'] ?? '';
+        $areaName =
+            $fields['PlaceName']['fields']['Name'] ?? '';
+
         $territoryName =
-            $fields['TerritoryType']['fields']['PlaceName']['fields']['Name'] ?? '';
+            $fields['TerritoryType']['fields']['PlaceName']['fields']['Name']
+            ?? '';
 
         $mapId =
             $fields['TerritoryType']['fields']['Map@as(raw)'] ?? 0;
+
+        if ($mapId === 0) {
+            return;
+        }
 
         $map = $this->xivApiService->getMap($mapId);
 
@@ -89,33 +99,35 @@ class GatheringSyncService
             ['id' => $baseId],
             [
                 'gathering_type' =>
-                $pointBaseRow['fields']['GatheringType']['fields']['Name'] ?? '',
+                    $pointBaseRow['fields']['GatheringType']['fields']['Name']
+                    ?? '',
 
                 'gathering_level' =>
-                $pointBaseRow['fields']['GatheringLevel'] ?? 0,
+                    $pointBaseRow['fields']['GatheringLevel'] ?? 0,
 
                 'area_name' => $areaName,
+
                 'territory_name' => $territoryName,
 
                 'map_id' => $mapId,
 
                 'raw_x' =>
-                $exportedPoint['fields']['X'] ?? null,
+                    $exportedPoint['fields']['X'] ?? null,
 
                 'raw_y' =>
-                $exportedPoint['fields']['Y'] ?? null,
+                    $exportedPoint['fields']['Y'] ?? null,
 
                 'radius' =>
-                $exportedPoint['fields']['Radius'] ?? null,
+                    $exportedPoint['fields']['Radius'] ?? null,
 
                 'map_size_factor' =>
-                $map['fields']['SizeFactor'] ?? 100,
+                    $map['fields']['SizeFactor'] ?? 100,
 
                 'map_offset_x' =>
-                $map['fields']['OffsetX'] ?? 0,
+                    $map['fields']['OffsetX'] ?? 0,
 
                 'map_offset_y' =>
-                $map['fields']['OffsetY'] ?? 0,
+                    $map['fields']['OffsetY'] ?? 0,
             ]
         );
 
@@ -129,6 +141,7 @@ class GatheringSyncService
             ]
         );
     }
+
     public function syncMany(array $itemIds): void
     {
         foreach ($itemIds as $itemId) {
@@ -138,7 +151,7 @@ class GatheringSyncService
 
     public function syncMissing(array $itemIds): void
     {
-        $existingIds = \App\Models\Item::query()
+        $existingIds = Item::query()
             ->whereIn('id', $itemIds)
             ->pluck('id')
             ->all();
@@ -152,7 +165,7 @@ class GatheringSyncService
 
     public function needsSync(int $itemId): bool
     {
-        $item = \App\Models\Item::find($itemId);
+        $item = Item::find($itemId);
 
         if ($item === null) {
             return true;
@@ -165,5 +178,29 @@ class GatheringSyncService
         return $item->gathering_checked_at->lt(
             now()->subDays(30)
         );
+    }
+
+    private function selectBestGatheringPoint(array $points): ?array
+    {
+        $validPoint = collect($points)
+            ->first(function (array $point) {
+                $area =
+                    $point['fields']['PlaceName']['fields']['Name']
+                    ?? '';
+
+                $territory =
+                    $point['fields']['TerritoryType']['fields']['PlaceName']['fields']['Name']
+                    ?? '';
+
+                $mapId =
+                    $point['fields']['TerritoryType']['fields']['Map@as(raw)']
+                    ?? 0;
+
+                return $area !== ''
+                    && $territory !== ''
+                    && $mapId !== 0;
+            });
+
+        return $validPoint;
     }
 }

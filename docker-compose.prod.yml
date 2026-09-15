@@ -48,7 +48,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
+  phpmyadmin:
+    image: phpmyadmin:latest
+    ports:
+      - "127.0.0.1:8081:80"
+    environment:
+      PMA_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
   frontend:
     build:
       context: ./frontend

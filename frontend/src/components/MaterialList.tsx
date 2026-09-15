@@ -20,6 +20,7 @@ export const MaterialList = ({
     const [sortOrder, setSortOrder] = useState<SortOrder>("name-asc");
     const [expandedGathering, setExpandedGathering] = useState<Record<number, boolean>>({});
     const [expandedMobDrops, setExpandedMobDrops] = useState<Record<number, boolean>>({});
+    const [expandedFishing, setExpandedFishing] = useState<Record<number, boolean>>({});
 
     const listId = useId();
     const [storageError, setStorageError] = useState(false);
@@ -137,9 +138,14 @@ export const MaterialList = ({
                         material={material}
                         status={materialStatuses[material.id] ?? "default"}
                         isGatheringExpanded={expandedGathering[material.id] ?? false}
+                        isFishingExpanded={expandedFishing[material.id] ?? false}
                         isMobDropsExpanded={expandedMobDrops[material.id] ?? false}
                         onCycleStatus={() => cycleStatus(material.id)}
                         onToggleGathering={() => setExpandedGathering((current) => ({
+                            ...current,
+                            [material.id]: !current[material.id],
+                        }))}
+                        onToggleFishing={() => setExpandedFishing((current) => ({
                             ...current,
                             [material.id]: !current[material.id],
                         }))}

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\GatheringNode;
 use App\Models\GatheringNodeItem;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Item extends Model
 {
@@ -14,6 +15,7 @@ class Item extends Model
         'id',
         'name',
         'gathering_checked_at',
+        'fishing_checked_at',
     ];
     public function gatheringNodeItems()
     {
@@ -32,11 +34,22 @@ class Item extends Model
     {
         return [
             'gathering_checked_at' => 'datetime',
+            'fishing_checked_at' => 'datetime',
         ];
     }
 
     public function mobDrops(): HasMany
     {
         return $this->hasMany(MobDrop::class);
+    }
+
+    public function fishingSpots(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            FishingSpot::class,
+            'fishing_spot_items',
+            'item_id',
+            'fishing_spot_id'
+        )->withTimestamps();
     }
 }

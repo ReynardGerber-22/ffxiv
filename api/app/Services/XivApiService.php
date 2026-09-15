@@ -689,4 +689,40 @@ class XivApiService
             ]
         )->throw()->json();
     }
+
+    public function findFishingSpotsByItemId(int $itemId): array
+    {
+        $spots = [];
+
+        for ($index = 0; $index < 10; $index++) {
+            $response = $this->search(
+                'FishingSpot',
+                "Item[$index]=$itemId",
+                'PlaceName.Name'
+            );
+
+            foreach ($response['results'] ?? [] as $result) {
+                $spots[$result['row_id']] = $result;
+            }
+        }
+
+        return array_values($spots);
+    }
+
+    public function getFishingSpot(int $fishingSpotId): array
+    {
+        return $this->getSheetRow(
+            'FishingSpot',
+            $fishingSpotId,
+            implode(',', [
+                'PlaceName.Name',
+                'GatheringLevel',
+                'TerritoryType.PlaceName.Name',
+                'TerritoryType.Map@as(raw)',
+                'X',
+                'Z',
+                'Radius',
+            ])
+        );
+    }
 }

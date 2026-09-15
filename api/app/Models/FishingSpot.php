@@ -32,14 +32,21 @@ class FishingSpot extends Model
             'item_id'
         )->withTimestamps();
     }
-
-    public function getMapX(): float
+    public function getMapX(): ?float
     {
+        if (!$this->map_size_factor) {
+            return null;
+        }
+
         return ($this->raw_x / $this->map_size_factor * 2) + 1;
     }
 
-    public function getMapY(): float
+    public function getMapY(): ?float
     {
+        if (!$this->map_size_factor) {
+            return null;
+        }
+
         return ($this->raw_z / $this->map_size_factor * 2) + 1;
     }
 }

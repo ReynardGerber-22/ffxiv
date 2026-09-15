@@ -9,12 +9,15 @@ class FishingService
 {
     public function toFishingInfo(FishingSpot $spot): array
     {
+        $x = $spot->getMapX();
+        $y = $spot->getMapY();
+
         return [
             'level' => $spot->fishing_level,
             'spot' => $spot->name,
             'territory' => $spot->territory_name,
-            'x' => round($spot->getMapX(), 1),
-            'y' => round($spot->getMapY(), 1),
+            'x' => $x !== null ? round($x, 1) : null,
+            'y' => $y !== null ? round($y, 1) : null,
         ];
     }
     public function enrichMaterials(array $materials): array

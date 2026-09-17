@@ -32,7 +32,17 @@ export const MaterialRow = ({
   onToggleMobDrops,
 }: MaterialRowProps) => {
   const gatheringNodes = material.gathering ?? [];
-  const fishingSpots = material.fishing ?? [];
+  const fishingSpots = (material.fishing ?? [])
+    .filter((spot) =>
+      spot.spot?.trim() &&
+      spot.territory?.trim() &&
+      typeof spot.x === "number" && Number.isFinite(spot.x) &&
+      typeof spot.y === "number" && Number.isFinite(spot.y),
+    )
+    .map((spot) => ({
+      ...spot,
+      baits: spot.baits?.filter((bait) => bait.name?.trim()),
+    }));
   const mobDrops = material.mobDrops ?? [];
 
   const shouldShowMobDrops = mobDrops.length > 0;

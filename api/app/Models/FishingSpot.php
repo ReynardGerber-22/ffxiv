@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FishingSpot extends Model
 {
@@ -23,6 +24,11 @@ class FishingSpot extends Model
 
     public $incrementing = false;
 
+    public function fishingBaits(): HasMany
+    {
+        return $this->hasMany(FishingBait::class);
+    }
+
     public function items(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -32,9 +38,10 @@ class FishingSpot extends Model
             'item_id'
         )->withTimestamps();
     }
+
     public function getMapX(): ?float
     {
-        if (!$this->map_size_factor) {
+        if (! $this->map_size_factor) {
             return null;
         }
 
@@ -43,7 +50,7 @@ class FishingSpot extends Model
 
     public function getMapY(): ?float
     {
-        if (!$this->map_size_factor) {
+        if (! $this->map_size_factor) {
             return null;
         }
 

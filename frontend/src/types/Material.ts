@@ -7,12 +7,18 @@ export type GatheringInfo = {
   y: number;
 };
 
+export type FishingBait = {
+  id: number;
+  name: string;
+};
+
 export type FishingInfo = {
   level: number;
   spot: string;
+  baits?: FishingBait[];
   territory: string;
-  x: number;
-  y: number;
+  x: number | null;
+  y: number | null;
 };
 
 export type Material = {

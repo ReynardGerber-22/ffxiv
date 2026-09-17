@@ -3,20 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\GatheringNode;
-use App\Models\GatheringNodeItem;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Item extends Model
 {
     public $incrementing = false;
+
     protected $fillable = [
         'id',
         'name',
         'gathering_checked_at',
         'fishing_checked_at',
     ];
+
     public function gatheringNodeItems()
     {
         return $this->hasMany(GatheringNodeItem::class);
@@ -30,6 +30,7 @@ class Item extends Model
         )->withPivot('gathering_item_id')
             ->withTimestamps();
     }
+
     protected function casts(): array
     {
         return [
@@ -41,6 +42,11 @@ class Item extends Model
     public function mobDrops(): HasMany
     {
         return $this->hasMany(MobDrop::class);
+    }
+
+    public function fishingBaits(): HasMany
+    {
+        return $this->hasMany(FishingBait::class, 'fish_item_id');
     }
 
     public function fishingSpots(): BelongsToMany

@@ -467,6 +467,14 @@ class XivApiService
         return $response->json();
     }
 
+    public function getItems(array $itemIds): array
+    {
+        return Http::timeout(60)->retry(3, 1000)->get($this->baseUrl.'/sheet/Item', [
+            'rows' => implode(',', $itemIds),
+            'fields' => 'Name',
+        ])->throw()->json('rows');
+    }
+
     public function findGatheringItemsByItemId(int $itemId): array
     {
         $response = Http::get(

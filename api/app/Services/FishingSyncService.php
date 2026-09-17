@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Item;
 use App\Models\FishingSpot;
+use App\Models\Item;
 
 class FishingSyncService
 {
@@ -15,7 +15,7 @@ class FishingSyncService
     {
         $item = Item::find($itemId);
 
-        if (!$item) {
+        if (! $item) {
             return;
         }
 
@@ -41,51 +41,7 @@ class FishingSyncService
         foreach ($spots as $spot) {
             $spotId = $spot['row_id'];
 
-            $spotData = $this->xivApiService
-                ->getFishingSpot($spotId);
-
-            $mapId =
-                $spotData['fields']['TerritoryType']['fields']['Map@as(raw)']
-                ?? null;
-
-            $mapData = $mapId
-                ? $this->xivApiService->getMap($mapId)
-                : null;
-
-            $fishingSpot = FishingSpot::updateOrCreate(
-                ['id' => $spotId],
-                [
-                    'name' =>
-                    $spotData['fields']['PlaceName']['fields']['Name']
-                        ?? '',
-
-                    'fishing_level' =>
-                    $spotData['fields']['GatheringLevel']
-                        ?? 0,
-
-                    'territory_name' =>
-                    $spotData['fields']['TerritoryType']['fields']['PlaceName']['fields']['Name']
-                        ?? '',
-
-                    'map_id' => $mapId,
-
-                    'raw_x' => $spotData['fields']['X'] ?? null,
-                    'raw_z' => $spotData['fields']['Z'] ?? null,
-                    'radius' => $spotData['fields']['Radius'] ?? null,
-
-                    'map_size_factor' =>
-                    $mapData['fields']['SizeFactor']
-                        ?? null,
-
-                    'map_offset_x' =>
-                    $mapData['fields']['OffsetX']
-                        ?? null,
-
-                    'map_offset_y' =>
-                    $mapData['fields']['OffsetY']
-                        ?? null,
-                ]
-            );
+            $fishingSpot = $this->syncSpot($spotId);
 
             $item->fishingSpots()->syncWithoutDetaching([
                 $fishingSpot->id,
@@ -95,6 +51,51 @@ class FishingSyncService
         $item->update([
             'fishing_checked_at' => now(),
         ]);
+    }
+
+    public function syncSpot(int $spotId): FishingSpot
+    {
+        $spotData = $this->xivApiService
+            ->getFishingSpot($spotId);
+
+        $mapId =
+            $spotData['fields']['TerritoryType']['fields']['Map@as(raw)']
+            ?? null;
+
+        $mapData = $mapId
+            ? $this->xivApiService->getMap($mapId)
+            : null;
+
+        $fishingSpot = FishingSpot::updateOrCreate(
+            ['id' => $spotId],
+            [
+                'name' => $spotData['fields']['PlaceName']['fields']['Name']
+                    ?? '',
+
+                'fishing_level' => $spotData['fields']['GatheringLevel']
+                    ?? 0,
+
+                'territory_name' => $spotData['fields']['TerritoryType']['fields']['PlaceName']['fields']['Name']
+                    ?? '',
+
+                'map_id' => $mapId,
+
+                'raw_x' => $spotData['fields']['X'] ?? null,
+                'raw_z' => $spotData['fields']['Z'] ?? null,
+                'radius' => $spotData['fields']['Radius'] ?? null,
+
+                'map_size_factor' => $mapData['fields']['SizeFactor']
+                    ?? null,
+
+                'map_offset_x' => $mapData['fields']['OffsetX']
+                    ?? null,
+
+                'map_offset_y' => $mapData['fields']['OffsetY']
+                    ?? null,
+            ]
+        );
+
+        return $fishingSpot;
     }
 
     public function needsSync(int $itemId): bool

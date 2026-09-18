@@ -1,7 +1,7 @@
 import type { FishingBait, FishingInfo } from "../types/Material";
 
 const BaitNames = ({ baits, isCollected }: { baits: FishingBait[]; isCollected: boolean }) => (
-    <div className={`mt-1 min-w-0 text-xs leading-relaxed ${isCollected ? "text-slate-500" : "text-slate-300"}`}>
+    <div className={`mt-1 min-w-0 text-sm leading-relaxed ${isCollected ? "text-slate-500" : "text-slate-300"}`}>
         <span className="text-slate-500">Recommended bait · </span>
         <span className="break-words">{baits.map((bait) => bait.name).join(", ")}</span>
     </div>
@@ -36,9 +36,9 @@ export const FishingLocations = ({
             {visibleSpots.map((spot, index) => (
                 <div
                     key={`${materialId}-${index}`}
-                    className={`mt-1 min-w-0 break-words text-xs ${
+                    className={`mt-4 first:mt-0 min-w-0 break-words text-sm leading-relaxed ${
                         isCollected
-                            ? "text-slate-600"
+                            ? "text-slate-500"
                             : "text-slate-400"
                     }`}
                 >
@@ -46,11 +46,11 @@ export const FishingLocations = ({
                         Fishing · Lv. {spot.level}
                     </span>
 
-                    <span className="ml-2">
+                    <span className="block">
                         {spot.territory} — {spot.spot}
                     </span>
 
-                    <span className="ml-2 inline-block whitespace-nowrap tabular-nums">
+                    <span className="block whitespace-nowrap tabular-nums">
                         X: {spot.x} Y: {spot.y}
                     </span>
 
@@ -80,7 +80,7 @@ export const FishingLocationsToggle = ({
         <button
             type="button"
             onClick={onToggle}
-            className="mt-2 block w-full text-left text-xs text-slate-400 transition-colors hover:text-white"
+            className="mt-4 block min-h-11 w-full text-left text-sm text-slate-400 transition-colors hover:text-white"
         >
             {isExpanded
                 ? "Show fewer fishing locations"

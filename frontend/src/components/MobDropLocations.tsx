@@ -30,19 +30,19 @@ export const MobDropLocations = ({
                 return (
                     <div
                         key={`${materialId}-mob-${index}`}
-                        className={`mt-1 text-xs ${isCollected
-                                ? "text-slate-600"
+                        className={`mt-4 first:mt-0 text-sm leading-relaxed ${isCollected
+                                ? "text-slate-500"
                                 : "text-slate-400"
                             }`}
                     >
                         <div className="font-medium text-slate-300">
-                            Mob · {toTitleCase(drop.mob)}
+                            {toTitleCase(drop.mob)}
                         </div>
 
                         {territories.map((territory, territoryIndex) => (
                             <div
                                 key={`${materialId}-mob-${index}-territory-${territoryIndex}`}
-                                className="mt-0.5"
+                                className="mt-2"
                             >
                                 {!isExpanded ? (
                                     <div>
@@ -50,7 +50,7 @@ export const MobDropLocations = ({
 
                                         {territory.locations.length > 0 && (
                                             <>
-                                                <span className="ml-2 tabular-nums">
+                                                <span className="block tabular-nums">
                                                     X: {territory.locations[0].x} Y: {territory.locations[0].y}
                                                 </span>
 
@@ -66,7 +66,7 @@ export const MobDropLocations = ({
                                     <div>
                                         <span>{territory.territory}</span>
 
-                                        <span className="ml-2 tabular-nums text-slate-500">
+                                        <span className="block tabular-nums text-slate-400">
                                             X: {territory.locations[0].x} Y: {territory.locations[0].y}
                                         </span>
                                     </div>
@@ -112,7 +112,7 @@ export const MobDropLocationsToggle = ({
         <button
             type="button"
             onClick={onToggle}
-            className="block w-full px-6 pb-3 text-left text-xs text-slate-400 transition-colors hover:text-white"
+            className="mt-4 block min-h-11 w-full text-left text-sm text-slate-400 transition-colors hover:text-white"
         >
             {isExpanded
                 ? "Show fewer mob sources"

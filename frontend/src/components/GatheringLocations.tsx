@@ -20,8 +20,8 @@ export const GatheringLocations = ({
             {visibleNodes.map((node, index) => (
                 <div
                     key={`${materialId}-${index}`}
-                    className={`mt-1 text-xs ${isCollected
-                        ? "text-slate-600"
+                    className={`mt-4 first:mt-0 text-sm leading-relaxed ${isCollected
+                        ? "text-slate-500"
                         : "text-slate-400"
                         }`}
                 >
@@ -29,11 +29,11 @@ export const GatheringLocations = ({
                         {node.type} · Lv. {node.level}
                     </span>
 
-                    <span className="ml-2">
+                    <span className="block">
                         {node.territory} — {node.area}
                     </span>
 
-                    <span className="ml-2 tabular-nums">
+                    <span className="block tabular-nums">
                         X: {node.x} Y: {node.y}
                     </span>
                 </div>
@@ -59,7 +59,7 @@ export const GatheringLocationsToggle = ({
         <button
             type="button"
             onClick={onToggle}
-            className="block w-full px-6 pb-3 text-left text-xs text-slate-400 transition-colors hover:text-white"
+            className="mt-4 block min-h-11 w-full text-left text-sm text-slate-400 transition-colors hover:text-white"
         >
             {isExpanded
                 ? "Show fewer gathering locations"

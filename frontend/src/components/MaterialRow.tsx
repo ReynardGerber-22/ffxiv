@@ -1,3 +1,4 @@
+import { useId, useState } from "react";
 import type { Material } from "../types/Material";
 import {
   GatheringLocations,
@@ -7,7 +8,10 @@ import { MobDropLocations, MobDropLocationsToggle } from "./MobDropLocations";
 import { FishingLocations, FishingLocationsToggle } from "./FishingLocations";
 import { VendorLocations } from "./VendorLocations";
 
-export type MaterialStatus = "default" | "collecting" | "collected";
+import { SourceSection } from "./SourceSection";
+import { MaterialStatusButton, type MaterialStatus } from "./MaterialStatusButton";
+
+export type { MaterialStatus } from "./MaterialStatusButton";
 
 type MaterialRowProps = {
     material: Material;
@@ -32,6 +36,8 @@ export const MaterialRow = ({
   onToggleFishing,
   onToggleMobDrops,
 }: MaterialRowProps) => {
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const detailsId = useId();
   const gatheringNodes = material.gathering ?? [];
   const fishingSpots = (material.fishing ?? [])
     .filter((spot) =>
@@ -45,102 +51,82 @@ export const MaterialRow = ({
       baits: spot.baits?.filter((bait) => bait.name?.trim()),
     }));
   const mobDrops = material.mobDrops ?? [];
-  const vendors = material.vendors ?? [];
+  const vendors = (material.vendors ?? []).filter((vendor) => vendor.name.trim());
 
   const shouldShowMobDrops = mobDrops.length > 0;
 
+  const sourceSummary = [
+    vendors.length > 0
+      ? `Buy · ${vendors.some((vendor) => vendor.price !== vendors[0].price) ? "from " : ""}${Math.min(...vendors.map((vendor) => vendor.price)).toLocaleString()} gil each`
+      : null,
+    gatheringNodes.length > 0 ? "Gather" : null,
+    fishingSpots.length > 0 ? "Fish" : null,
+    shouldShowMobDrops ? "Mob drops" : null,
+  ].filter(Boolean).join("  •  ");
+  const hasDetails = sourceSummary.length > 0;
+  const isCollected = status === "collected";
+
+
   return (
     <li>
-      <div className="border-b border-slate-800 last:border-b-0">
+      <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:gap-6 sm:px-6 ${
+        status === "collecting" ? "bg-amber-950/20" : isCollected ? "bg-emerald-950/20" : ""
+      }`}>
         <button
           type="button"
-          onClick={onCycleStatus}
-          className={`grid w-full grid-cols-[minmax(0,1fr)_5rem_7ch] items-center gap-3 px-6 py-3 text-left transition-colors ${
-            status === "collecting"
-              ? "bg-amber-950/40 hover:bg-amber-950/60"
-              : status === "collected"
-                ? "bg-emerald-950/40 hover:bg-emerald-950/60"
-                : "hover:bg-slate-800/50"
-          }`}
+          disabled={!hasDetails}
+          aria-expanded={hasDetails ? detailsExpanded : undefined}
+          aria-controls={hasDetails ? detailsId : undefined}
+          onClick={() => setDetailsExpanded((current) => !current)}
+          className="flex min-h-11 min-w-0 items-start gap-3 rounded text-left focus-visible:outline-2 focus-visible:outline-blue-500 enabled:hover:text-white"
         >
-          <div className="min-w-0">
-            <span
-              className={`block break-words ${
-                status === "collected"
-                  ? "text-slate-500 line-through"
-                  : "text-slate-200"
-              }`}
-            >
+          {hasDetails && (
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+              className={`mt-1 h-4 w-4 shrink-0 text-slate-400 transition-transform ${detailsExpanded ? "rotate-90" : ""}`}>
+              <path d="m9 5 7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+          <span className="min-w-0">
+            <span className={`block break-words font-medium ${isCollected ? "text-slate-500 line-through" : "text-slate-200"}`}>
               {material.name}
             </span>
-          </div>
-
-          <span
-            className={`text-xs font-medium ${
-              status === "collecting" ? "text-amber-400" : "text-emerald-400"
-            }`}
-          >
-            {status === "collecting"
-              ? "Collecting"
-              : status === "collected"
-                ? "Collected"
-                : ""}
-          </span>
-
-          <span className="justify-self-end rounded-md bg-slate-800 px-2 py-1 text-sm font-semibold tabular-nums text-slate-200">
-            ×{material.quantity}
+            {hasDetails && <span className="mt-1 block text-xs leading-relaxed text-slate-400">{sourceSummary}</span>}
           </span>
         </button>
-
-        {(gatheringNodes.length > 0 || fishingSpots.length > 0 || shouldShowMobDrops || vendors.length > 0) && (
-          <div className="px-6 pb-3">
-            <GatheringLocations
-              materialId={material.id}
-              nodes={gatheringNodes}
-              isCollected={status === "collected"}
-              isExpanded={isGatheringExpanded}
-            />
-
-            <GatheringLocationsToggle
-              count={gatheringNodes.length}
-              isExpanded={isGatheringExpanded}
-              onToggle={onToggleGathering}
-            />
-
-            <FishingLocations
-              materialId={material.id}
-              spots={fishingSpots}
-              isCollected={status === "collected"}
-              isExpanded={isFishingExpanded}
-            />
-
-            <FishingLocationsToggle
-              count={fishingSpots.length}
-              isExpanded={isFishingExpanded}
-              onToggle={onToggleFishing}
-            />
-
-            <VendorLocations vendors={vendors} isCollected={status === "collected"} />
-
+        <div className="flex flex-col-reverse items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <MaterialStatusButton itemName={material.name} status={status} onClick={onCycleStatus} />
+          <span className="rounded-md bg-slate-800 px-2.5 py-1 text-sm font-semibold tabular-nums text-slate-200">×{material.quantity}</span>
+        </div>
+      </div>
+      {hasDetails && (
+        <div id={detailsId} hidden={!detailsExpanded} className="px-4 pb-5 sm:px-6 sm:pb-6">
+          <div className="grid items-start gap-4 md:grid-cols-2">
+            {vendors.length > 0 && (
+              <SourceSection title="Buy from NPC">
+                <VendorLocations vendors={vendors} isCollected={isCollected} />
+              </SourceSection>
+            )}
+            {gatheringNodes.length > 0 && (
+              <SourceSection title="Gather">
+                <GatheringLocations materialId={material.id} nodes={gatheringNodes} isCollected={isCollected} isExpanded={isGatheringExpanded} />
+                <GatheringLocationsToggle count={gatheringNodes.length} isExpanded={isGatheringExpanded} onToggle={onToggleGathering} />
+              </SourceSection>
+            )}
+            {fishingSpots.length > 0 && (
+              <SourceSection title="Fish">
+                <FishingLocations materialId={material.id} spots={fishingSpots} isCollected={isCollected} isExpanded={isFishingExpanded} />
+                <FishingLocationsToggle count={fishingSpots.length} isExpanded={isFishingExpanded} onToggle={onToggleFishing} />
+              </SourceSection>
+            )}
             {shouldShowMobDrops && (
-              <>
-                <MobDropLocations
-                  materialId={material.id}
-                  drops={mobDrops}
-                  isCollected={status === "collected"}
-                  isExpanded={isMobDropsExpanded}
-                />
-
-                <MobDropLocationsToggle
-                  count={mobDrops.length}
-                  isExpanded={isMobDropsExpanded}
-                  onToggle={onToggleMobDrops}
-                />
-              </>
+              <SourceSection title="Mob drops">
+                <MobDropLocations materialId={material.id} drops={mobDrops} isCollected={isCollected} isExpanded={isMobDropsExpanded} />
+                <MobDropLocationsToggle count={mobDrops.length} isExpanded={isMobDropsExpanded} onToggle={onToggleMobDrops} />
+              </SourceSection>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </li>
   );
 };

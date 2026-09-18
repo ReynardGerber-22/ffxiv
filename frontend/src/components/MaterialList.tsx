@@ -9,7 +9,55 @@ type MaterialListProps = {
     storageKey: string;
 };
 
-type SortOrder = "name-asc" | "name-desc" | "quantity-desc" | "quantity-asc";
+type SortOrder = "name-asc" | "name-desc" | "quantity-desc" | "quantity-asc" | "location";
+
+type LocationGroup = {
+    territory: string;
+    materials: Material[];
+};
+
+const UNKNOWN_LOCATION = "Other / Unknown Location";
+
+const materialTerritories = (material: Material): string[] => {
+    const territories = new Set<string>();
+    const add = (territory: string | null | undefined) => {
+        const normalized = territory?.trim();
+        if (normalized) territories.add(normalized);
+    };
+
+    material.gathering?.forEach((node) => add(node.territory));
+    material.fishing?.forEach((spot) => add(spot.territory));
+    material.mobDrops?.forEach((drop) => drop.territories?.forEach((territory) => add(territory.territory)));
+    material.vendors?.forEach((vendor) => {
+        if (vendor.locationResolved) add(vendor.territory);
+    });
+
+    return [...territories];
+};
+
+const locationGroups = (materials: Material[]): LocationGroup[] => {
+    const groups = new Map<string, Material[]>();
+
+    materials.forEach((material) => {
+        const territories = materialTerritories(material);
+        (territories.length > 0 ? territories : [UNKNOWN_LOCATION]).forEach((territory) => {
+            const group = groups.get(territory) ?? [];
+            group.push(material);
+            groups.set(territory, group);
+        });
+    });
+
+    return [...groups.entries()]
+        .sort(([territoryA], [territoryB]) => {
+            if (territoryA === UNKNOWN_LOCATION) return 1;
+            if (territoryB === UNKNOWN_LOCATION) return -1;
+            return territoryA.localeCompare(territoryB);
+        })
+        .map(([territory, groupMaterials]) => ({
+            territory,
+            materials: groupMaterials.sort((a, b) => a.name.localeCompare(b.name)),
+        }));
+};
 
 export const MaterialList = ({
     title,
@@ -46,6 +94,10 @@ export const MaterialList = ({
                     default: return alphabetical;
                 }
             }),
+        [materials, sortOrder]
+    );
+    const groupedMaterials = useMemo(
+        () => sortOrder === "location" ? locationGroups(materials) : [],
         [materials, sortOrder]
     );
 
@@ -110,6 +162,7 @@ export const MaterialList = ({
                         <option value="name-desc">Name: Z–A</option>
                         <option value="quantity-desc">Quantity: highest first</option>
                         <option value="quantity-asc">Quantity: lowest first</option>
+                        <option value="location">Location</option>
                     </select>
                 </label>
                 <button
@@ -132,7 +185,38 @@ export const MaterialList = ({
             )}
 
             <ul id={listId} hidden={!isExpanded} className="divide-y divide-slate-800 border-t border-slate-800">
-                {sortedMaterials.map((material) => (
+                {sortOrder === "location" ? groupedMaterials.map((group) => (
+                    <li key={group.territory}>
+                        <h3 className="border-b border-slate-800 bg-slate-950/60 px-6 py-3 text-sm font-semibold text-slate-300">
+                            {group.territory}
+                        </h3>
+                        <ul className="divide-y divide-slate-800">
+                            {group.materials.map((material) => (
+                                <MaterialRow
+                                    key={`${group.territory}-${material.id}`}
+                                    material={material}
+                                    status={materialStatuses[material.id] ?? "default"}
+                                    isGatheringExpanded={expandedGathering[material.id] ?? false}
+                                    isFishingExpanded={expandedFishing[material.id] ?? false}
+                                    isMobDropsExpanded={expandedMobDrops[material.id] ?? false}
+                                    onCycleStatus={() => cycleStatus(material.id)}
+                                    onToggleGathering={() => setExpandedGathering((current) => ({
+                                        ...current,
+                                        [material.id]: !current[material.id],
+                                    }))}
+                                    onToggleFishing={() => setExpandedFishing((current) => ({
+                                        ...current,
+                                        [material.id]: !current[material.id],
+                                    }))}
+                                    onToggleMobDrops={() => setExpandedMobDrops((current) => ({
+                                        ...current,
+                                        [material.id]: !current[material.id],
+                                    }))}
+                                />
+                            ))}
+                        </ul>
+                    </li>
+                )) : sortedMaterials.map((material) => (
                     <MaterialRow
                         key={material.id}
                         material={material}

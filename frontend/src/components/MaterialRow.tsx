@@ -5,6 +5,7 @@ import {
 } from "./GatheringLocations";
 import { MobDropLocations, MobDropLocationsToggle } from "./MobDropLocations";
 import { FishingLocations, FishingLocationsToggle } from "./FishingLocations";
+import { VendorLocations } from "./VendorLocations";
 
 export type MaterialStatus = "default" | "collecting" | "collected";
 
@@ -44,6 +45,7 @@ export const MaterialRow = ({
       baits: spot.baits?.filter((bait) => bait.name?.trim()),
     }));
   const mobDrops = material.mobDrops ?? [];
+  const vendors = material.vendors ?? [];
 
   const shouldShowMobDrops = mobDrops.length > 0;
 
@@ -90,7 +92,7 @@ export const MaterialRow = ({
           </span>
         </button>
 
-        {(gatheringNodes.length > 0 || fishingSpots.length > 0 || shouldShowMobDrops) && (
+        {(gatheringNodes.length > 0 || fishingSpots.length > 0 || shouldShowMobDrops || vendors.length > 0) && (
           <div className="px-6 pb-3">
             <GatheringLocations
               materialId={material.id}
@@ -117,6 +119,8 @@ export const MaterialRow = ({
               isExpanded={isFishingExpanded}
               onToggle={onToggleFishing}
             />
+
+            <VendorLocations vendors={vendors} isCollected={status === "collected"} />
 
             {shouldShowMobDrops && (
               <>

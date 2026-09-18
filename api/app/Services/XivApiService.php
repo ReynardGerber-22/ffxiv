@@ -733,4 +733,44 @@ class XivApiService
             ])
         );
     }
+
+    /** Fetch every search page; callers must use explicit + clauses for AND filters. */
+    public function searchAll(string $sheet, string $query, string $fields): array
+    {
+        $rows = [];
+        $cursor = null;
+        do {
+            $params = ['sheets' => $sheet, 'query' => $query, 'fields' => $fields, 'limit' => 500];
+            if ($cursor !== null) {
+                $params['cursor'] = $cursor;
+            }
+            $data = Http::timeout(60)->retry(3, 1000)
+                ->get($this->baseUrl.'/search', $params)->throw()->json();
+            if (! is_array($data) || ! isset($data['results']) || ! is_array($data['results'])) {
+                throw new \RuntimeException('Invalid XIVAPI search response for '.$sheet);
+            }
+            array_push($rows, ...($data['results'] ?? []));
+            $cursor = $data['next'] ?? null;
+        } while ($cursor !== null);
+
+        return $rows;
+    }
+
+    public function getSheetRows(string $sheet, array $ids, string $fields): array
+    {
+        $rows = [];
+        foreach (array_chunk(array_values(array_unique($ids)), 100) as $chunk) {
+            $data = Http::timeout(60)->retry(3, 1000)->get($this->baseUrl.'/sheet/'.$sheet, [
+                'rows' => implode(',', $chunk), 'fields' => $fields,
+            ])->throw()->json();
+            if (! is_array($data) || ! isset($data['rows']) || ! is_array($data['rows'])) {
+                throw new \RuntimeException('Invalid XIVAPI sheet response for '.$sheet);
+            }
+            foreach ($data['rows'] ?? [] as $row) {
+                $rows[$row['row_id']] = $row;
+            }
+        }
+
+        return $rows;
+    }
 }

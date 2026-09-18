@@ -28,6 +28,20 @@ export type Material = {
   gathering?: GatheringInfo[];
   fishing?: FishingInfo[];
   mobDrops?: MobDrop[];
+  vendors?: VendorInfo[];
+};
+
+export type VendorInfo = {
+  id: number;
+  name: string;
+  title: string | null;
+  price: number;
+  territory: string | null;
+  area: string | null;
+  mapId: number | null;
+  x: number | null;
+  y: number | null;
+  locationResolved: boolean;
 };
 
 export type MobLocation = {

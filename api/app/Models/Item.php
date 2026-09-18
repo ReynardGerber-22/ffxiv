@@ -44,6 +44,11 @@ class Item extends Model
         return $this->hasMany(MobDrop::class);
     }
 
+    public function gilShopItems(): HasMany
+    {
+        return $this->hasMany(GilShopItem::class);
+    }
+
     public function fishingBaits(): HasMany
     {
         return $this->hasMany(FishingBait::class, 'fish_item_id');

@@ -1,9 +1,11 @@
 # Third-party notices
 
-## FFXIV Teamcraft fishing data
+## FFXIV Teamcraft fishing and NPC location data
 
-Fishing recommendations are provided by [FFXIV Teamcraft](https://ffxivteamcraft.com/).
+Fishing recommendations and fallback NPC locations are provided by [FFXIV Teamcraft](https://ffxivteamcraft.com/).
 Source: https://github.com/ffxiv-teamcraft/ffxiv-teamcraft/blob/staging/libs/data/src/lib/json/fishing-sources.json
+
+NPC location source: https://github.com/ffxiv-teamcraft/ffxiv-teamcraft/blob/staging/libs/data/src/lib/json/npcs.json
 
 The following license applies to the imported Teamcraft data:
 

@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import type { Material } from "../types/Material";
 import { MaterialRow, type MaterialStatus } from "./MaterialRow";
+import { MaterialLocationGroup } from "./MaterialLocationGroup";
 import { readSavedValue, saveValue } from "../services/plannerStorage";
 
 type MaterialListProps = {
@@ -120,6 +121,30 @@ export const MaterialList = ({
         setStorageError(!saveValue(storageKey, next));
     };
 
+    const renderMaterial = (material: Material) => (
+        <MaterialRow
+            key={material.id}
+            material={material}
+            status={materialStatuses[material.id] ?? "default"}
+            isGatheringExpanded={expandedGathering[material.id] ?? false}
+            isFishingExpanded={expandedFishing[material.id] ?? false}
+            isMobDropsExpanded={expandedMobDrops[material.id] ?? false}
+            onCycleStatus={() => cycleStatus(material.id)}
+            onToggleGathering={() => setExpandedGathering((current) => ({
+                ...current,
+                [material.id]: !current[material.id],
+            }))}
+            onToggleFishing={() => setExpandedFishing((current) => ({
+                ...current,
+                [material.id]: !current[material.id],
+            }))}
+            onToggleMobDrops={() => setExpandedMobDrops((current) => ({
+                ...current,
+                [material.id]: !current[material.id],
+            }))}
+        />
+    );
+
     return (
         <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
             <h2 className="text-lg font-semibold text-white">
@@ -184,61 +209,17 @@ export const MaterialList = ({
                 </p>
             )}
 
-            <ul id={listId} hidden={!isExpanded} className="divide-y divide-slate-800 border-t border-slate-800">
+            <ul
+                id={listId}
+                hidden={!isExpanded}
+                aria-label={`${title} items`}
+                className="divide-y divide-slate-800 border-t border-slate-800 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500"
+            >
                 {sortOrder === "location" ? groupedMaterials.map((group) => (
-                    <li key={group.territory}>
-                        <h3 className="border-b border-slate-800 bg-slate-950/60 px-6 py-3 text-sm font-semibold text-slate-300">
-                            {group.territory}
-                        </h3>
-                        <ul className="divide-y divide-slate-800">
-                            {group.materials.map((material) => (
-                                <MaterialRow
-                                    key={`${group.territory}-${material.id}`}
-                                    material={material}
-                                    status={materialStatuses[material.id] ?? "default"}
-                                    isGatheringExpanded={expandedGathering[material.id] ?? false}
-                                    isFishingExpanded={expandedFishing[material.id] ?? false}
-                                    isMobDropsExpanded={expandedMobDrops[material.id] ?? false}
-                                    onCycleStatus={() => cycleStatus(material.id)}
-                                    onToggleGathering={() => setExpandedGathering((current) => ({
-                                        ...current,
-                                        [material.id]: !current[material.id],
-                                    }))}
-                                    onToggleFishing={() => setExpandedFishing((current) => ({
-                                        ...current,
-                                        [material.id]: !current[material.id],
-                                    }))}
-                                    onToggleMobDrops={() => setExpandedMobDrops((current) => ({
-                                        ...current,
-                                        [material.id]: !current[material.id],
-                                    }))}
-                                />
-                            ))}
-                        </ul>
-                    </li>
-                )) : sortedMaterials.map((material) => (
-                    <MaterialRow
-                        key={material.id}
-                        material={material}
-                        status={materialStatuses[material.id] ?? "default"}
-                        isGatheringExpanded={expandedGathering[material.id] ?? false}
-                        isFishingExpanded={expandedFishing[material.id] ?? false}
-                        isMobDropsExpanded={expandedMobDrops[material.id] ?? false}
-                        onCycleStatus={() => cycleStatus(material.id)}
-                        onToggleGathering={() => setExpandedGathering((current) => ({
-                            ...current,
-                            [material.id]: !current[material.id],
-                        }))}
-                        onToggleFishing={() => setExpandedFishing((current) => ({
-                            ...current,
-                            [material.id]: !current[material.id],
-                        }))}
-                        onToggleMobDrops={() => setExpandedMobDrops((current) => ({
-                            ...current,
-                            [material.id]: !current[material.id],
-                        }))}
-                    />
-                ))}
+                    <MaterialLocationGroup key={group.territory} territory={group.territory} count={group.materials.length}>
+                        {group.materials.map(renderMaterial)}
+                    </MaterialLocationGroup>
+                )) : sortedMaterials.map(renderMaterial)}
             </ul>
         </section>
     );

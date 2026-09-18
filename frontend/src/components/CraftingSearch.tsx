@@ -92,7 +92,12 @@ export const CraftingSearch = ({ onSearch, loading, initialCriteria }: CraftingS
                         type="number"
                         value={minLevel}
                         onChange={(event) => {
-                            setMinLevel(event.target.value);
+                            const value = event.target.value;
+                            setMinLevel(value);
+                            const minimum = Number(value);
+                            if (value !== "" && Number.isInteger(minimum) && minimum >= 1 && minimum <= 100) {
+                                setMaxLevel(String(Math.min(minimum + 1, 100)));
+                            }
                         }}
                     />
                 </label>

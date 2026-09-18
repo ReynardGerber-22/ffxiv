@@ -26,6 +26,7 @@ export const MobDropLocations = ({
         <>
             {visibleMobDrops.map((drop, index) => {
                 const territories = drop.territories ?? [];
+                const visibleTerritories = isExpanded ? territories : territories.slice(0, 2);
 
                 return (
                     <div
@@ -39,7 +40,7 @@ export const MobDropLocations = ({
                             {toTitleCase(drop.mob)}
                         </div>
 
-                        {territories.map((territory, territoryIndex) => (
+                        {visibleTerritories.map((territory, territoryIndex) => (
                             <div
                                 key={`${materialId}-mob-${index}-territory-${territoryIndex}`}
                                 className="mt-2"
@@ -88,6 +89,9 @@ export const MobDropLocations = ({
                                 )}
                             </div>
                         ))}
+                        {!isExpanded && territories.length > 2 && (
+                            <p className="mt-2 text-slate-500">+{territories.length - 2} more territories</p>
+                        )}
                     </div>
                 );
             })}
@@ -96,27 +100,32 @@ export const MobDropLocations = ({
 };
 
 type MobDropLocationsToggleProps = {
-    count: number;
+    drops: MobDrop[];
     isExpanded: boolean;
     onToggle: () => void;
 };
 
 export const MobDropLocationsToggle = ({
-    count,
+    drops,
     isExpanded,
     onToggle,
 }: MobDropLocationsToggleProps) => {
-    if (count <= 2) return null;
+    const hasHiddenDetails = drops.length > 2 || drops.some((drop) =>
+        (drop.territories?.length ?? 0) > 2 ||
+        drop.territories?.some((territory) => territory.locations.length > 1),
+    );
+    if (!hasHiddenDetails) return null;
 
     return (
         <button
             type="button"
             onClick={onToggle}
+            aria-expanded={isExpanded}
             className="mt-4 block min-h-11 w-full text-left text-sm text-slate-400 transition-colors hover:text-white"
         >
             {isExpanded
                 ? "Show fewer mob sources"
-                : `+${count - 2} more mob source${count - 2 === 1 ? "" : "s"}`}
+                : "Show all mob sources and locations"}
         </button>
     );
 };

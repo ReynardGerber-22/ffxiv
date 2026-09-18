@@ -95,7 +95,7 @@ export const MaterialRow = ({
         </button>
         <div className="flex flex-col-reverse items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
           <MaterialStatusButton itemName={material.name} status={status} onClick={onCycleStatus} />
-          <span className="rounded-md bg-slate-800 px-2.5 py-1 text-sm font-semibold tabular-nums text-slate-200">×{material.quantity}</span>
+          <span className="w-20 rounded-md bg-slate-800 px-2.5 py-1 text-center text-sm font-semibold tabular-nums text-slate-200">×{material.quantity}</span>
         </div>
       </div>
       {hasDetails && (
@@ -121,7 +121,7 @@ export const MaterialRow = ({
             {shouldShowMobDrops && (
               <SourceSection title="Mob drops">
                 <MobDropLocations materialId={material.id} drops={mobDrops} isCollected={isCollected} isExpanded={isMobDropsExpanded} />
-                <MobDropLocationsToggle count={mobDrops.length} isExpanded={isMobDropsExpanded} onToggle={onToggleMobDrops} />
+                <MobDropLocationsToggle drops={mobDrops} isExpanded={isMobDropsExpanded} onToggle={onToggleMobDrops} />
               </SourceSection>
             )}
           </div>

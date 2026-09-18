@@ -43,7 +43,7 @@ export const VendorLocations = ({ vendors, isCollected }: VendorLocationsProps) 
                     onClick={() => setIsExpanded((current) => !current)}
                     className="mt-4 block min-h-11 w-full text-left text-sm text-slate-400 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-blue-500"
                 >
-                    {isExpanded ? "Show fewer vendors" : `+${namedVendors.length - 2} more vendors`}
+                    {isExpanded ? "Show fewer vendors" : `Show all ${namedVendors.length} vendors`}
                 </button>
             )}
         </div>

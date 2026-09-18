@@ -59,11 +59,12 @@ export const GatheringLocationsToggle = ({
         <button
             type="button"
             onClick={onToggle}
+            aria-expanded={isExpanded}
             className="mt-4 block min-h-11 w-full text-left text-sm text-slate-400 transition-colors hover:text-white"
         >
             {isExpanded
                 ? "Show fewer gathering locations"
-                : `+${count - 2} more gathering locations`}
+                : `Show all ${count} gathering locations`}
         </button>
     );
 };

@@ -734,6 +734,32 @@ class XivApiService
         );
     }
 
+    /** Yield bounded pages without accumulating the full search result. */
+    public function searchPages(string $sheet, string $query, string $fields): \Generator
+    {
+        $cursor = null;
+        $seenCursors = [];
+        do {
+            $params = ['sheets' => $sheet, 'query' => $query, 'fields' => $fields, 'limit' => 100, 'language' => 'en'];
+            if ($cursor !== null) {
+                $params['cursor'] = $cursor;
+            }
+            $data = Http::connectTimeout(15)->timeout(60)->retry(3, 1000)
+                ->get($this->baseUrl.'/search', $params)->throw()->json();
+            if (! is_array($data) || ! isset($data['results']) || ! is_array($data['results'])) {
+                throw new \RuntimeException('Invalid XIVAPI search response for '.$sheet);
+            }
+            yield $data['results'];
+            $cursor = $data['next'] ?? null;
+            if ($cursor !== null) {
+                if (! is_string($cursor) || $cursor === '' || isset($seenCursors[$cursor])) {
+                    throw new \RuntimeException('Invalid or repeated XIVAPI search cursor for '.$sheet);
+                }
+                $seenCursors[$cursor] = true;
+            }
+        } while ($cursor !== null);
+    }
+
     /** Fetch every search page; callers must use explicit + clauses for AND filters. */
     public function searchAll(string $sheet, string $query, string $fields): array
     {

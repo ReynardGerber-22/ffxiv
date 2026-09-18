@@ -80,11 +80,12 @@ export const FishingLocationsToggle = ({
         <button
             type="button"
             onClick={onToggle}
+            aria-expanded={isExpanded}
             className="mt-4 block min-h-11 w-full text-left text-sm text-slate-400 transition-colors hover:text-white"
         >
             {isExpanded
                 ? "Show fewer fishing locations"
-                : `+${count - 2} more fishing locations`}
+                : `Show all ${count} fishing locations`}
         </button>
     );
 };

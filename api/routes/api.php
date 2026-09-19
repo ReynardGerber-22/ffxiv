@@ -28,3 +28,18 @@ Route::get('/health', function () {
         'status' => 'ok',
     ]);
 });
+
+Route::post(
+    '/custom-materials',
+    [CraftingController::class, 'customMaterials']
+);
+
+Route::post(
+    '/custom-crafting-materials',
+    [CraftingController::class, 'customCraftingMaterials']
+);
+
+Route::get(
+    '/craftable-items',
+    [CraftingController::class, 'searchCraftableItems']
+);

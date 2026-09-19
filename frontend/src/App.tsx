@@ -9,36 +9,46 @@ import {
 import { RecipeDrawer } from "./components/RecipeDrawer";
 import { MaterialList } from "./components/MaterialList";
 
-import { loadPlan, savePlan, progressKey, type SearchCriteria } from "./services/plannerStorage";
+import {
+  loadPlan,
+  savePlan,
+  progressKey,
+  type SearchCriteria,
+} from "./services/plannerStorage";
+import { CustomCraftingList } from "./components/CustomCraftingList";
 
 const crystalTypes = ["Shard", "Crystal", "Cluster"];
 
 const isCrystal = (material: Material) =>
   crystalTypes.some((type) => material.name.includes(type));
 
+const isCustomCraftingPage = window.location.pathname === "/custom";
+
 function App() {
   const [savedPlan] = useState(loadPlan);
   const [storageError, setStorageError] = useState(false);
-  const [craftingMaterials, setCraftingMaterials] =
-    useState<Material[]>(savedPlan?.craftingMaterials ?? []);
+  const [craftingMaterials, setCraftingMaterials] = useState<Material[]>(
+    savedPlan?.craftingMaterials ?? [],
+  );
 
-  const [expandedMaterials, setExpandedMaterials] =
-    useState<Material[]>(savedPlan?.expandedMaterials ?? []);
+  const [expandedMaterials, setExpandedMaterials] = useState<Material[]>(
+    savedPlan?.expandedMaterials ?? [],
+  );
 
-  const [searchCriteria, setSearchCriteria] =
-    useState<SearchCriteria | null>(savedPlan?.criteria ?? null);
+  const [searchCriteria, setSearchCriteria] = useState<SearchCriteria | null>(
+    savedPlan?.criteria ?? null,
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isSearching = useRef(false);
 
-
   const searchMaterials = async (
     job: string,
     minLevel: number,
     maxLevel: number,
-    includeDrops: boolean
+    includeDrops: boolean,
   ) => {
     if (isSearching.current) {
       return;
@@ -55,10 +65,20 @@ function App() {
 
       setCraftingMaterials(craftingData);
       setExpandedMaterials(expandedData);
-      const criteria = { job, minLevel, maxLevel, includeSpecialSources: includeDrops };
+      const criteria = {
+        job,
+        minLevel,
+        maxLevel,
+        includeSpecialSources: includeDrops,
+      };
       setSearchCriteria(criteria);
-      setStorageError(!savePlan({ criteria, craftingMaterials: craftingData, expandedMaterials: expandedData }));
-
+      setStorageError(
+        !savePlan({
+          criteria,
+          craftingMaterials: craftingData,
+          expandedMaterials: expandedData,
+        }),
+      );
     } catch (error) {
       console.error(error);
       setError("Something went wrong while calculating materials.");
@@ -87,62 +107,90 @@ function App() {
           </h1>
 
           <p className="mt-3 text-slate-400">
-            Calculate the crafted materials, raw materials, and crystals
-            needed for a selected crafting level range.
+            Plan the materials you need by crafting level range or a custom list
+            of items.
           </p>
+
+          <nav className="mt-6 flex gap-2 border-b border-slate-800" aria-label="Planner views">
+            <a
+              href="/"
+              aria-current={!isCustomCraftingPage ? "page" : undefined}
+              className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${!isCustomCraftingPage ? "border-blue-500 text-white" : "border-transparent text-slate-400 hover:border-slate-600 hover:text-slate-200"}`}
+            >
+              Level Range
+            </a>
+            <a
+              href="/custom"
+              aria-current={isCustomCraftingPage ? "page" : undefined}
+              className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${isCustomCraftingPage ? "border-blue-500 text-white" : "border-transparent text-slate-400 hover:border-slate-600 hover:text-slate-200"}`}
+            >
+              Custom List
+            </a>
+          </nav>
         </header>
 
-        <CraftingSearch loading={loading} onSearch={searchMaterials} initialCriteria={savedPlan?.criteria} />
+        {isCustomCraftingPage ? (
+          <CustomCraftingList />
+        ) : (
+          <>
+            <CraftingSearch
+              loading={loading}
+              onSearch={searchMaterials}
+              initialCriteria={savedPlan?.criteria}
+            />
 
-        {storageError && <p className="mt-4 text-amber-400">Your browser could not save this plan. It may not be restored after a reload.</p>}
-
-        {error && (
-          <p className="mt-6 text-red-400">
-            {error}
-          </p>
-        )}
-
-        {searchCriteria && (
-          <div className="mt-10 space-y-8" aria-busy={loading}>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-              <h2 className="text-xl font-semibold text-white">
-                {searchCriteria.job}
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-400">
-                Levels {searchCriteria.minLevel}–{searchCriteria.maxLevel}
+            {storageError && (
+              <p className="mt-4 text-amber-400">
+                Your browser could not save this plan. It may not be restored after
+                a reload.
               </p>
+            )}
+
+            {error && <p className="mt-6 text-red-400">{error}</p>}
+
+            {searchCriteria && (
+              <div className="mt-10 space-y-8" aria-busy={loading}>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">
+                      {searchCriteria.job}
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-400">
+                      Levels {searchCriteria.minLevel}–{searchCriteria.maxLevel}
+                    </p>
+                  </div>
+                  <RecipeDrawer
+                    key={progressKey(searchCriteria, "recipes")}
+                    criteria={searchCriteria}
+                    disabled={loading}
+                  />
+                </div>
+
+                <MaterialList
+                  title="Raw Materials"
+                  key={progressKey(searchCriteria, "raw")}
+                  storageKey={progressKey(searchCriteria, "raw")}
+                  materials={rawMaterials}
+                />
+
+                <MaterialList
+                  title="Crystals"
+                  key={progressKey(searchCriteria, "crystals")}
+                  storageKey={progressKey(searchCriteria, "crystals")}
+                  materials={crystals}
+                />
+
+                <MaterialList
+                  title="Craft These"
+                  isCrafting
+                  key={progressKey(searchCriteria, "crafting")}
+                  storageKey={progressKey(searchCriteria, "crafting")}
+                  materials={craftingMaterials}
+                />
               </div>
-              <RecipeDrawer
-                key={progressKey(searchCriteria, "recipes")}
-                criteria={searchCriteria}
-                disabled={loading}
-              />
-            </div>
-
-            <MaterialList
-              title="Raw Materials"
-              key={progressKey(searchCriteria, "raw")}
-              storageKey={progressKey(searchCriteria, "raw")}
-              materials={rawMaterials}
-            />
-
-            <MaterialList
-              title="Crystals"
-              key={progressKey(searchCriteria, "crystals")}
-              storageKey={progressKey(searchCriteria, "crystals")}
-              materials={crystals}
-            />
-
-            <MaterialList
-              title="Craft These"
-              isCrafting
-              key={progressKey(searchCriteria, "crafting")}
-              storageKey={progressKey(searchCriteria, "crafting")}
-              materials={craftingMaterials}
-            />
-          </div>
+            )}
+          </>
         )}
       </div>
     </main>

@@ -103,4 +103,78 @@ class CraftingController extends Controller
             (bool) ($validated['includeSpecialSources'] ?? $validated['includeDungeonDrops'] ?? true)
         );
     }
+    public function customMaterials(
+        Request $request,
+        XivApiService $xivApi,
+        MaterialSourceService $materialSourceService
+    ): array {
+        $validated = $request->validate([
+            'items' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+            'items.*.id' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
+            'items.*.quantity' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
+        ]);
+
+        $materials = $xivApi->getCustomMaterialList(
+            $validated['items']
+        );
+
+        return $materialSourceService->enrichMaterials($materials);
+    }
+
+    public function customCraftingMaterials(
+        Request $request,
+        XivApiService $xivApi
+    ): array {
+        $validated = $request->validate([
+            'items' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+            'items.*.id' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
+            'items.*.quantity' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
+        ]);
+
+        return $xivApi->getCustomCraftingMaterialList(
+            $validated['items']
+        );
+    }
+
+    public function searchCraftableItems(
+        Request $request,
+        XivApiService $xivApi
+    ): array {
+        $validated = $request->validate([
+            'search' => [
+                'required',
+                'string',
+                'min:2',
+                'max:100',
+            ],
+        ]);
+
+        return $xivApi->searchCraftableItems(
+            $validated['search']
+        );
+    }
 }

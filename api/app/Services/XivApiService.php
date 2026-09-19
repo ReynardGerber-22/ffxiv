@@ -17,9 +17,9 @@ class XivApiService
         bool $includeSpecialSources = true
     ): array {
         $rows = $this->searchRecipes([
-            '+CraftType.Name="'.$job.'"',
-            '+RecipeLevelTable.ClassJobLevel>='.$minLevel,
-            '+RecipeLevelTable.ClassJobLevel<='.$maxLevel,
+            '+CraftType.Name="' . $job . '"',
+            '+RecipeLevelTable.ClassJobLevel>=' . $minLevel,
+            '+RecipeLevelTable.ClassJobLevel<=' . $maxLevel,
             '+RecipeNotebookList=0',
         ]);
 
@@ -54,8 +54,8 @@ class XivApiService
             ->whereHas('dungeonDrops')
             ->whereDoesntHave('gatheringNodes')
             ->whereDoesntHave('fishingSpots')
-            ->whereDoesntHave('gilShopItems', fn ($query) => $query->where('is_hq', false)->where('price', '>', 0))
-            ->whereDoesntHave('mobDrops', fn ($query) => $query->whereIn('bnpc_name_id', MobSpawn::query()->select('bnpc_name_id')))
+            ->whereDoesntHave('gilShopItems', fn($query) => $query->where('is_hq', false)->where('price', '>', 0))
+            ->whereDoesntHave('mobDrops', fn($query) => $query->whereIn('bnpc_name_id', MobSpawn::query()->select('bnpc_name_id')))
             ->pluck('id')->all(), true);
 
         // Discover the same ingredient recipes used by material expansion, once per item.
@@ -163,42 +163,32 @@ class XivApiService
             $includeSpecialSources
         );
 
-        /*
-         * Materials that still need to be checked
-         * to see if they have crafting recipes.
-         */
+        return $this->expandMaterials($materials, $job);
+    }
+
+    private function expandMaterials(
+        array $materials,
+        ?string $preferredJob = null
+    ): array {
         $pending = [];
 
         foreach ($materials as $material) {
             $pending[$material['id']] = $material;
         }
 
-        /*
-         * Materials that cannot be crafted any further.
-         */
         $finalMaterials = [];
 
         while (! empty($pending)) {
             $itemIds = array_keys($pending);
 
-            /*
-             * Find recipes for the entire current layer
-             * in one XIVAPI request.
-             */
             $recipes = $this->findRecipesByItemIds(
                 $itemIds,
-                $job
+                $preferredJob
             );
 
             $nextPending = [];
 
             foreach ($pending as $itemId => $material) {
-                /*
-                 * No recipe found.
-                 *
-                 * This means we have reached a raw/final
-                 * material.
-                 */
                 if (! isset($recipes[$itemId])) {
                     if (isset($finalMaterials[$itemId])) {
                         $finalMaterials[$itemId]['quantity'] +=
@@ -212,10 +202,6 @@ class XivApiService
 
                 $recipe = $recipes[$itemId];
 
-                /*
-                 * Some recipes produce more than one item
-                 * per craft.
-                 */
                 $craftsNeeded = (int) ceil(
                     $material['quantity']
                         / $recipe['amountResult']
@@ -228,11 +214,6 @@ class XivApiService
                         $ingredient['quantity']
                         * $craftsNeeded;
 
-                    /*
-                     * If another recipe in this layer needs
-                     * the same ingredient, combine them before
-                     * processing the next layer.
-                     */
                     if (isset($nextPending[$ingredientId])) {
                         $nextPending[$ingredientId]['quantity'] +=
                             $quantity;
@@ -265,6 +246,17 @@ class XivApiService
             $includeSpecialSources
         );
 
+        return $this->findCraftingMaterials(
+            $materials,
+            $job
+        );
+    }
+
+    private function findCraftingMaterials(
+        array $materials,
+        ?string $preferredJob = null
+    ): array {
+
         /*
          * Materials that still need to be checked
          * to see if they have crafting recipes.
@@ -286,7 +278,7 @@ class XivApiService
 
             $recipes = $this->findRecipesByItemIds(
                 $itemIds,
-                $job
+                $preferredJob
             );
 
             $nextPending = [];
@@ -377,7 +369,7 @@ class XivApiService
 
     public function findRecipesByItemIds(
         array $itemIds,
-        string $preferredJob
+        ?string $preferredJob = null
     ): array {
         if (empty($itemIds)) {
             return [];
@@ -385,7 +377,7 @@ class XivApiService
 
         $conditions = array_map(
             function ($itemId) {
-                return 'ItemResult='.$itemId;
+                return 'ItemResult=' . $itemId;
             },
             $itemIds
         );
@@ -426,7 +418,10 @@ class XivApiService
              * If multiple recipes exist for the same item,
              * prefer the recipe belonging to the selected job.
              */
-            if ($recipe['job'] === $preferredJob) {
+            if (
+                $preferredJob !== null
+                && $recipe['job'] === $preferredJob
+            ) {
                 $recipes[$itemId] = $recipe;
             }
         }
@@ -517,7 +512,7 @@ class XivApiService
             }
 
             $response = Http::get(
-                $this->baseUrl.'/search',
+                $this->baseUrl . '/search',
                 $request
             );
 
@@ -538,7 +533,7 @@ class XivApiService
     public function getItem(int $itemId): array
     {
         $response = Http::get(
-            $this->baseUrl.'/sheet/Item/'.$itemId,
+            $this->baseUrl . '/sheet/Item/' . $itemId,
             []
         );
 
@@ -549,7 +544,7 @@ class XivApiService
 
     public function getItems(array $itemIds): array
     {
-        return Http::timeout(60)->retry(3, 1000)->get($this->baseUrl.'/sheet/Item', [
+        return Http::timeout(60)->retry(3, 1000)->get($this->baseUrl . '/sheet/Item', [
             'rows' => implode(',', $itemIds),
             'fields' => 'Name',
         ])->throw()->json('rows');
@@ -558,10 +553,10 @@ class XivApiService
     public function findGatheringItemsByItemId(int $itemId): array
     {
         $response = Http::get(
-            $this->baseUrl.'/search',
+            $this->baseUrl . '/search',
             [
                 'sheets' => 'GatheringItem',
-                'query' => 'Item='.$itemId,
+                'query' => 'Item=' . $itemId,
                 'fields' => 'Item.Name',
                 'limit' => 100,
             ]
@@ -575,7 +570,7 @@ class XivApiService
     public function getGatheringItem(int $gatheringItemId): array
     {
         $response = Http::get(
-            $this->baseUrl.'/sheet/GatheringItem/'.$gatheringItemId
+            $this->baseUrl . '/sheet/GatheringItem/' . $gatheringItemId
         );
 
         $response->throw();
@@ -586,10 +581,10 @@ class XivApiService
     public function findGatheringItemPoints(int $gatheringItemId): array
     {
         $response = Http::get(
-            $this->baseUrl.'/search',
+            $this->baseUrl . '/search',
             [
                 'sheets' => 'GatheringItemPoint',
-                'query' => 'GatheringItem='.$gatheringItemId,
+                'query' => 'GatheringItem=' . $gatheringItemId,
                 'limit' => 100,
             ]
         );
@@ -602,7 +597,7 @@ class XivApiService
     public function getGatheringPointBase(int $id): array
     {
         $response = Http::get(
-            $this->baseUrl.'/sheet/GatheringPointBase/'.$id
+            $this->baseUrl . '/sheet/GatheringPointBase/' . $id
         );
 
         $response->throw();
@@ -613,7 +608,7 @@ class XivApiService
     public function getGatheringPointBases(): array
     {
         $response = Http::get(
-            $this->baseUrl.'/sheet/GatheringPointBase',
+            $this->baseUrl . '/sheet/GatheringPointBase',
             [
                 'fields' => implode(',', [
                     'GatheringLevel',
@@ -633,10 +628,10 @@ class XivApiService
         int $gatheringItemId
     ): array {
         $response = Http::get(
-            $this->baseUrl.'/search',
+            $this->baseUrl . '/search',
             [
                 'sheets' => 'GatheringPointBase',
-                'query' => 'Item[]='.$gatheringItemId,
+                'query' => 'Item[]=' . $gatheringItemId,
                 'fields' => implode(',', [
                     'GatheringLevel',
                     'GatheringType.Name',
@@ -654,10 +649,10 @@ class XivApiService
     public function findGatheringPointsByBaseId(int $baseId): array
     {
         $response = Http::get(
-            $this->baseUrl.'/search',
+            $this->baseUrl . '/search',
             [
                 'sheets' => 'GatheringPoint',
-                'query' => 'GatheringPointBase='.$baseId,
+                'query' => 'GatheringPointBase=' . $baseId,
                 'fields' => implode(',', [
                     'GatheringPointBase@as(raw)',
                     'PlaceName.Name',
@@ -676,7 +671,7 @@ class XivApiService
     public function getGatheringPoint(int $id): array
     {
         $response = Http::get(
-            $this->baseUrl.'/sheet/GatheringPoint/'.$id,
+            $this->baseUrl . '/sheet/GatheringPoint/' . $id,
             [
                 'fields' => implode(',', [
                     'GatheringPointBase@as(raw)',
@@ -696,7 +691,7 @@ class XivApiService
     public function getMap(int $id): array
     {
         $response = Http::get(
-            $this->baseUrl.'/sheet/Map/'.$id,
+            $this->baseUrl . '/sheet/Map/' . $id,
             [
                 'fields' => implode(',', [
                     'PlaceName.Name',
@@ -716,7 +711,7 @@ class XivApiService
     public function getGatheringPointPosition(int $id): array
     {
         $response = Http::get(
-            $this->baseUrl.'/sheet/GatheringPoint/'.$id,
+            $this->baseUrl . '/sheet/GatheringPoint/' . $id,
             [
                 'fields' => implode(',', [
                     'X',
@@ -737,7 +732,7 @@ class XivApiService
     public function getExportedGatheringPoints(): array
     {
         $response = Http::get(
-            $this->baseUrl.'/sheet/ExportedGatheringPoint',
+            $this->baseUrl . '/sheet/ExportedGatheringPoint',
             [
                 'limit' => 5,
             ]
@@ -751,7 +746,7 @@ class XivApiService
     public function getExportedGatheringPoint(int $id): array
     {
         $response = Http::get(
-            $this->baseUrl.'/sheet/ExportedGatheringPoint/'.$id
+            $this->baseUrl . '/sheet/ExportedGatheringPoint/' . $id
         );
 
         $response->throw();
@@ -828,15 +823,15 @@ class XivApiService
                 $params['cursor'] = $cursor;
             }
             $data = Http::connectTimeout(15)->timeout(60)->retry(3, 1000)
-                ->get($this->baseUrl.'/search', $params)->throw()->json();
+                ->get($this->baseUrl . '/search', $params)->throw()->json();
             if (! is_array($data) || ! isset($data['results']) || ! is_array($data['results'])) {
-                throw new \RuntimeException('Invalid XIVAPI search response for '.$sheet);
+                throw new \RuntimeException('Invalid XIVAPI search response for ' . $sheet);
             }
             yield $data['results'];
             $cursor = $data['next'] ?? null;
             if ($cursor !== null) {
                 if (! is_string($cursor) || $cursor === '' || isset($seenCursors[$cursor])) {
-                    throw new \RuntimeException('Invalid or repeated XIVAPI search cursor for '.$sheet);
+                    throw new \RuntimeException('Invalid or repeated XIVAPI search cursor for ' . $sheet);
                 }
                 $seenCursors[$cursor] = true;
             }
@@ -854,9 +849,9 @@ class XivApiService
                 $params['cursor'] = $cursor;
             }
             $data = Http::timeout(60)->retry(3, 1000)
-                ->get($this->baseUrl.'/search', $params)->throw()->json();
+                ->get($this->baseUrl . '/search', $params)->throw()->json();
             if (! is_array($data) || ! isset($data['results']) || ! is_array($data['results'])) {
-                throw new \RuntimeException('Invalid XIVAPI search response for '.$sheet);
+                throw new \RuntimeException('Invalid XIVAPI search response for ' . $sheet);
             }
             array_push($rows, ...($data['results'] ?? []));
             $cursor = $data['next'] ?? null;
@@ -869,11 +864,12 @@ class XivApiService
     {
         $rows = [];
         foreach (array_chunk(array_values(array_unique($ids)), 100) as $chunk) {
-            $data = Http::timeout(60)->retry(3, 1000)->get($this->baseUrl.'/sheet/'.$sheet, [
-                'rows' => implode(',', $chunk), 'fields' => $fields,
+            $data = Http::timeout(60)->retry(3, 1000)->get($this->baseUrl . '/sheet/' . $sheet, [
+                'rows' => implode(',', $chunk),
+                'fields' => $fields,
             ])->throw()->json();
             if (! is_array($data) || ! isset($data['rows']) || ! is_array($data['rows'])) {
-                throw new \RuntimeException('Invalid XIVAPI sheet response for '.$sheet);
+                throw new \RuntimeException('Invalid XIVAPI sheet response for ' . $sheet);
             }
             foreach ($data['rows'] ?? [] as $row) {
                 $rows[$row['row_id']] = $row;
@@ -881,5 +877,107 @@ class XivApiService
         }
 
         return $rows;
+    }
+
+    public function getCustomMaterialList(array $items): array
+    {
+        $materials = $this->getCustomStartingMaterials($items);
+
+        return $this->expandMaterials($materials);
+    }
+
+    private function getCustomStartingMaterials(array $items): array
+    {
+        if (empty($items)) {
+            return [];
+        }
+
+        $itemIds = array_column($items, 'id');
+
+        $recipes = $this->findRecipesByItemIds($itemIds);
+
+        $materials = [];
+
+        foreach ($items as $item) {
+            $itemId = $item['id'];
+
+            if (! isset($recipes[$itemId])) {
+                throw new \InvalidArgumentException(
+                    "No crafting recipe found for item {$itemId}."
+                );
+            }
+
+            $recipe = $recipes[$itemId];
+
+            $craftsNeeded = (int) ceil(
+                $item['quantity'] / $recipe['amountResult']
+            );
+
+            foreach ($recipe['ingredients'] as $ingredient) {
+                $ingredientId = $ingredient['id'];
+
+                $quantity =
+                    $ingredient['quantity']
+                    * $craftsNeeded;
+
+                if (isset($materials[$ingredientId])) {
+                    $materials[$ingredientId]['quantity'] += $quantity;
+
+                    continue;
+                }
+
+                $materials[$ingredientId] = [
+                    'id' => $ingredientId,
+                    'name' => $ingredient['name'],
+                    'quantity' => $quantity,
+                ];
+            }
+        }
+
+        return array_values($materials);
+    }
+
+    public function getCustomCraftingMaterialList(array $items): array
+    {
+        $materials = $this->getCustomStartingMaterials($items);
+
+        return $this->findCraftingMaterials($materials);
+    }
+
+    public function searchCraftableItems(string $search): array
+    {
+        $rows = $this->searchRecipes([
+            'ItemResult.Name~"' . $search . '"',
+        ]);
+
+        $items = [];
+
+        foreach ($rows as $row) {
+            $recipe = $this->transformRecipeRow($row);
+
+            if ($recipe['itemId'] === 0 || $recipe['name'] === '') {
+                continue;
+            }
+
+            $items[$recipe['itemId']] = [
+                'id' => $recipe['itemId'],
+                'name' => $recipe['name'],
+                'profession' => match ($recipe['job']) {
+                    'Woodworking' => 'Carpenter',
+                    'Smithing' => 'Blacksmith',
+                    'Armorcraft' => 'Armorer',
+                    'Goldsmithing' => 'Goldsmith',
+                    'Leatherworking' => 'Leatherworker',
+                    'Clothcraft' => 'Weaver',
+                    'Alchemy' => 'Alchemist',
+                    'Cooking' => 'Culinarian',
+                    default => $recipe['job'],
+                },
+                'level' => $recipe['level'],
+                'amountResult' => $recipe['amountResult'],
+            ];
+        }
+
+        return array_values($items);
     }
 }

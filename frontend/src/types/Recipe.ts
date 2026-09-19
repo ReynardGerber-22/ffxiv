@@ -4,4 +4,5 @@ export type Recipe = {
     name: string;
     job: string;
     level: number;
+    amountResult: number;
 };

@@ -7,7 +7,8 @@ type CraftingSearchProps = {
     onSearch: (
         job: string,
         minLevel: number,
-        maxLevel: number
+        maxLevel: number,
+        includeSpecialSources: boolean
     ) => Promise<void>;
     loading: boolean;
 };
@@ -19,6 +20,7 @@ export const CraftingSearch = ({ onSearch, loading, initialCriteria }: CraftingS
     const [job, setJob] = useState(initialCriteria?.job ?? "Blacksmith");
     const [minLevel, setMinLevel] = useState(String(initialCriteria?.minLevel ?? 1));
     const [maxLevel, setMaxLevel] = useState(String(initialCriteria?.maxLevel ?? 10));
+    const [includeSpecialSources, setIncludeSpecialSources] = useState(initialCriteria?.includeSpecialSources ?? true);
     const [error, setError] = useState<string | null>(null);
 
     const submitSearch: SubmitEventHandler<HTMLFormElement> = (event) => {
@@ -49,7 +51,7 @@ export const CraftingSearch = ({ onSearch, loading, initialCriteria }: CraftingS
 
         setError(null);
 
-        onSearch(job, min, max);
+        onSearch(job, min, max, includeSpecialSources);
     };
 
     return (
@@ -126,6 +128,23 @@ export const CraftingSearch = ({ onSearch, loading, initialCriteria }: CraftingS
                     {loading ? "Calculating..." : "Calculate Materials"}
                 </button>
 
+            </div>
+
+            <div className="mt-5 space-y-2 border-t border-slate-800 pt-5">
+                <label className="flex items-center gap-3 text-sm font-medium text-slate-200">
+                    <input
+                        type="checkbox"
+                        checked={includeSpecialSources}
+                        disabled={loading}
+                        onChange={(event) => setIncludeSpecialSources(event.target.checked)}
+                        className="h-4 w-4 accent-blue-500"
+                        aria-describedby="special-sources-description"
+                    />
+                    Include recipes requiring special sources
+                </label>
+                <p id="special-sources-description" className="text-sm text-slate-400">
+                    Duty drops, special currencies, treasure maps, and voyages. Choose your settings, then calculate materials to apply them.
+                </p>
             </div>
 
             {error && (

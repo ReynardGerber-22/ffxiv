@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import type { Material } from "./types/Material";
 import { CraftingSearch } from "./components/CraftingSearch";
 
@@ -22,7 +23,8 @@ const crystalTypes = ["Shard", "Crystal", "Cluster"];
 const isCrystal = (material: Material) =>
   crystalTypes.some((type) => material.name.includes(type));
 
-const isCustomCraftingPage = window.location.pathname === "/custom";
+const navigationClassName = (isActive: boolean) =>
+  `border-b-2 px-4 py-3 text-sm font-medium transition-colors ${isActive ? "border-blue-500 text-white" : "border-transparent text-slate-400 hover:border-slate-600 hover:text-slate-200"}`;
 
 function App() {
   const [savedPlan] = useState(loadPlan);
@@ -112,27 +114,28 @@ function App() {
           </p>
 
           <nav className="mt-6 flex gap-2 border-b border-slate-800" aria-label="Planner views">
-            <a
-              href="/"
-              aria-current={!isCustomCraftingPage ? "page" : undefined}
-              className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${!isCustomCraftingPage ? "border-blue-500 text-white" : "border-transparent text-slate-400 hover:border-slate-600 hover:text-slate-200"}`}
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => navigationClassName(isActive)}
             >
               Level Range
-            </a>
-            <a
-              href="/custom"
-              aria-current={isCustomCraftingPage ? "page" : undefined}
-              className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${isCustomCraftingPage ? "border-blue-500 text-white" : "border-transparent text-slate-400 hover:border-slate-600 hover:text-slate-200"}`}
+            </NavLink>
+            <NavLink
+              to="/custom"
+              className={({ isActive }) => navigationClassName(isActive)}
             >
               Custom List
-            </a>
+            </NavLink>
           </nav>
         </header>
 
-        {isCustomCraftingPage ? (
-          <CustomCraftingList />
-        ) : (
-          <>
+        <Routes>
+          <Route path="/custom" element={<CustomCraftingList />} />
+          <Route
+            path="/"
+            element={(
+              <>
             <CraftingSearch
               loading={loading}
               onSearch={searchMaterials}
@@ -190,8 +193,11 @@ function App() {
                 />
               </div>
             )}
-          </>
-        )}
+              </>
+            )}
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
     </main>
   );

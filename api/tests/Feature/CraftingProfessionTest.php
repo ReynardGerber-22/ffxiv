@@ -10,7 +10,7 @@ class CraftingProfessionTest extends TestCase
     public function test_crafting_materials_include_the_selected_recipe_profession_for_each_item(): void
     {
         $this->partialMock(XivApiService::class, function ($mock) {
-            $mock->shouldReceive('getMaterialList')->once()->with('Smithing', 1, 10)->andReturn([
+            $mock->shouldReceive('getMaterialList')->once()->with('Smithing', 1, 10, true)->andReturn([
                 ['id' => 10, 'name' => 'Ingot', 'quantity' => 3],
                 ['id' => 20, 'name' => 'Lumber', 'quantity' => 2],
             ]);

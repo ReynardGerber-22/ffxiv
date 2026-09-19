@@ -5,12 +5,14 @@ const getMaterials = async (
     endpoint: string,
     job: string,
     minLevel: number,
-    maxLevel: number
+    maxLevel: number,
+    includeSpecialSources = true
 ): Promise<Material[]> => {
     const params = new URLSearchParams({
         job,
         minLevel: minLevel.toString(),
         maxLevel: maxLevel.toString(),
+        includeSpecialSources: includeSpecialSources ? "1" : "0",
     });
 
     const response = await fetch(
@@ -29,25 +31,29 @@ const getMaterials = async (
 export const getCraftingMaterials = (
     job: string,
     minLevel: number,
-    maxLevel: number
+    maxLevel: number,
+    includeSpecialSources = true
 ): Promise<Material[]> => {
     return getMaterials(
         "/api/crafting-materials",
         job,
         minLevel,
-        maxLevel
+        maxLevel,
+        includeSpecialSources
     );
 };
 
 export const getExpandedMaterials = (
     job: string,
     minLevel: number,
-    maxLevel: number
+    maxLevel: number,
+    includeSpecialSources = true
 ): Promise<Material[]> => {
     return getMaterials(
         "/api/expanded-materials",
         job,
         minLevel,
-        maxLevel
+        maxLevel,
+        includeSpecialSources
     );
 };

@@ -4,6 +4,7 @@ export type SearchCriteria = {
     job: string;
     minLevel: number;
     maxLevel: number;
+    includeSpecialSources?: boolean;
 };
 
 type SavedPlan = {
@@ -42,10 +43,11 @@ export const loadPlan = (): SavedPlan | null => {
     if (!value || typeof value !== "object") return null;
     const plan = value as Partial<SavedPlan>;
     const criteria = plan.criteria;
-    if (!criteria || !jobs.includes(criteria.job)
+    if (!criteria || ("includeDungeonDrops" in criteria && criteria.includeDungeonDrops === false) || !jobs.includes(criteria.job)
         || !Number.isInteger(criteria.minLevel) || !Number.isInteger(criteria.maxLevel)
         || criteria.minLevel < 1 || criteria.maxLevel > 100
         || criteria.minLevel > criteria.maxLevel
+        || (criteria.includeSpecialSources !== undefined && typeof criteria.includeSpecialSources !== "boolean")
         || !isMaterialList(plan.craftingMaterials)
         || !isMaterialList(plan.expandedMaterials)) return null;
     return { criteria, craftingMaterials: plan.craftingMaterials, expandedMaterials: plan.expandedMaterials };
@@ -54,4 +56,4 @@ export const loadPlan = (): SavedPlan | null => {
 export const savePlan = (plan: SavedPlan) => saveValue(planKey, plan);
 
 export const progressKey = (criteria: SearchCriteria, section: string) =>
-    `ffxiv:progress:v1:${criteria.job}:${criteria.minLevel}:${criteria.maxLevel}:${section}`;
+    `ffxiv:progress:v1:${criteria.job}:${criteria.minLevel}:${criteria.maxLevel}:${section}${criteria.includeSpecialSources === false ? ":no-special-sources" : ""}`;

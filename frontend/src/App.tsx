@@ -18,6 +18,7 @@ const isCrystal = (material: Material) =>
 function App() {
   const [savedPlan] = useState(loadPlan);
   const [storageError, setStorageError] = useState(false);
+  const [includeSpecialSources, setIncludeSpecialSources] = useState(savedPlan?.criteria.includeSpecialSources ?? true);
   const [craftingMaterials, setCraftingMaterials] =
     useState<Material[]>(savedPlan?.craftingMaterials ?? []);
 
@@ -36,7 +37,8 @@ function App() {
   const searchMaterials = async (
     job: string,
     minLevel: number,
-    maxLevel: number
+    maxLevel: number,
+    includeDrops = includeSpecialSources
   ) => {
     if (isSearching.current) {
       return;
@@ -44,17 +46,17 @@ function App() {
     isSearching.current = true;
     setLoading(true);
     setError(null);
-    setSearchCriteria(null)
 
     try {
       const [craftingData, expandedData] = await Promise.all([
-        getCraftingMaterials(job, minLevel, maxLevel),
-        getExpandedMaterials(job, minLevel, maxLevel),
+        getCraftingMaterials(job, minLevel, maxLevel, includeDrops),
+        getExpandedMaterials(job, minLevel, maxLevel, includeDrops),
       ]);
 
       setCraftingMaterials(craftingData);
       setExpandedMaterials(expandedData);
-      const criteria = { job, minLevel, maxLevel };
+      const criteria = { job, minLevel, maxLevel, includeSpecialSources: includeDrops };
+      setIncludeSpecialSources(includeDrops);
       setSearchCriteria(criteria);
       setStorageError(!savePlan({ criteria, craftingMaterials: craftingData, expandedMaterials: expandedData }));
 
@@ -91,6 +93,31 @@ function App() {
           </p>
         </header>
 
+        <div className="mb-4 space-y-2">
+          <label className="flex items-center gap-3 text-sm text-slate-200">
+            <input
+              type="checkbox"
+              checked={includeSpecialSources}
+              disabled={loading}
+              onChange={(event) => {
+                const include = event.target.checked;
+                if (searchCriteria) {
+                  void searchMaterials(searchCriteria.job, searchCriteria.minLevel, searchCriteria.maxLevel, include);
+                } else {
+                  setIncludeSpecialSources(include);
+                }
+              }}
+              className="h-4 w-4 accent-blue-500"
+              aria-describedby="special-sources-description"
+            />
+            Include recipes requiring special sources
+          </label>
+          <p id="special-sources-description" className="text-sm text-slate-400">
+            Includes duty drops, special-currency purchases (such as tomestones), treasure maps, and voyages. Uncheck to exclude these recipes and recalculate all materials. Ordinary gathering, fishing, gil purchases, and open-world mob sources remain included.
+          </p>
+          {loading && <p role="status" className="text-sm text-slate-400">Recalculating materials…</p>}
+        </div>
+
         <CraftingSearch loading={loading} onSearch={searchMaterials} initialCriteria={savedPlan?.criteria} />
 
         {storageError && <p className="mt-4 text-amber-400">Your browser could not save this plan. It may not be restored after a reload.</p>}
@@ -102,7 +129,7 @@ function App() {
         )}
 
         {searchCriteria && (
-          <div className="mt-10 space-y-8">
+          <div className="mt-10 space-y-8" aria-busy={loading}>
             <div>
               <h2 className="text-xl font-semibold text-white">
                 {searchCriteria.job}

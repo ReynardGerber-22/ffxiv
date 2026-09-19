@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Item;
+use App\Models\MobSpawn;
 use Illuminate\Support\Facades\Http;
 
 class XivApiService
@@ -11,7 +13,8 @@ class XivApiService
     public function getRecipes(
         string $job,
         int $minLevel,
-        int $maxLevel
+        int $maxLevel,
+        bool $includeSpecialSources = true
     ): array {
         $rows = $this->searchRecipes([
             '+CraftType.Name="'.$job.'"',
@@ -42,18 +45,85 @@ class XivApiService
             $recipes[] = $recipe;
         }
 
-        return $recipes;
+        return $includeSpecialSources ? $recipes : $this->withoutSpecialSourceRecipes($recipes, $job);
+    }
+
+    private function withoutSpecialSourceRecipes(array $recipes, string $job): array
+    {
+        $blocked = array_fill_keys(Item::query()
+            ->whereHas('dungeonDrops')
+            ->whereDoesntHave('gatheringNodes')
+            ->whereDoesntHave('fishingSpots')
+            ->whereDoesntHave('gilShopItems', fn ($query) => $query->where('is_hq', false)->where('price', '>', 0))
+            ->whereDoesntHave('mobDrops', fn ($query) => $query->whereIn('bnpc_name_id', MobSpawn::query()->select('bnpc_name_id')))
+            ->pluck('id')->all(), true);
+
+        // Discover the same ingredient recipes used by material expansion, once per item.
+        $pending = [];
+        foreach ($recipes as $recipe) {
+            foreach ($recipe['ingredients'] as $ingredient) {
+                $pending[$ingredient['id']] = true;
+            }
+        }
+        $seen = [];
+        $parents = [];
+        $craftable = [];
+        while ($pending !== []) {
+            $ids = array_keys(array_diff_key($pending, $seen));
+            if ($ids === []) {
+                break;
+            }
+            $pending = [];
+            foreach (array_chunk($ids, 100) as $chunk) {
+                $seen += array_fill_keys($chunk, true);
+                foreach ($this->findRecipesByItemIds($chunk, $job) as $itemId => $recipe) {
+                    // Craftable loot follows its recipe dependencies instead of requiring a drop.
+                    $craftable[$itemId] = true;
+                    unset($blocked[$itemId]);
+                    foreach ($recipe['ingredients'] as $ingredient) {
+                        $parents[$ingredient['id']][$itemId] = true;
+                        $pending[$ingredient['id']] = true;
+                    }
+                }
+            }
+        }
+
+        $rawIds = array_keys(array_diff_key($seen, $craftable, $blocked));
+        $blocked += array_fill_keys(app(SpecialSourceService::class)->blockedItemIds($rawIds), true);
+
+        // Propagate restricted raw sources through every crafted ingredient.
+        $queue = array_keys($blocked);
+        for ($index = 0; $index < count($queue); $index++) {
+            foreach ($parents[$queue[$index]] ?? [] as $parent => $_) {
+                if (! isset($blocked[$parent])) {
+                    $blocked[$parent] = true;
+                    $queue[] = $parent;
+                }
+            }
+        }
+
+        return array_values(array_filter($recipes, function (array $recipe) use ($blocked): bool {
+            foreach ($recipe['ingredients'] as $ingredient) {
+                if (isset($blocked[$ingredient['id']])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
     }
 
     public function getMaterialList(
         string $job,
         int $minLevel,
-        int $maxLevel
+        int $maxLevel,
+        bool $includeSpecialSources = true
     ): array {
         $recipes = $this->getRecipes(
             $job,
             $minLevel,
-            $maxLevel
+            $maxLevel,
+            $includeSpecialSources
         );
 
         $materials = [];
@@ -83,12 +153,14 @@ class XivApiService
     public function getExpandedMaterialList(
         string $job,
         int $minLevel,
-        int $maxLevel
+        int $maxLevel,
+        bool $includeSpecialSources = true
     ): array {
         $materials = $this->getMaterialList(
             $job,
             $minLevel,
-            $maxLevel
+            $maxLevel,
+            $includeSpecialSources
         );
 
         /*
@@ -183,12 +255,14 @@ class XivApiService
     public function getCraftingMaterialList(
         string $job,
         int $minLevel,
-        int $maxLevel
+        int $maxLevel,
+        bool $includeSpecialSources = true
     ): array {
         $materials = $this->getMaterialList(
             $job,
             $minLevel,
-            $maxLevel
+            $maxLevel,
+            $includeSpecialSources
         );
 
         /*

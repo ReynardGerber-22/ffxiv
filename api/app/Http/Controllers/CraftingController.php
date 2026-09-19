@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\XivApiService;
 use App\Services\MaterialSourceService;
+use App\Services\XivApiService;
 use Illuminate\Http\Request;
 
 class CraftingController extends Controller
@@ -28,7 +28,8 @@ class CraftingController extends Controller
         return $xivApi->getRecipes(
             $this->jobMap[$validated['job']],
             $validated['minLevel'],
-            $validated['maxLevel']
+            $validated['maxLevel'],
+            (bool) ($validated['includeSpecialSources'] ?? $validated['includeDungeonDrops'] ?? true)
         );
     }
 
@@ -41,7 +42,8 @@ class CraftingController extends Controller
         return $xivApi->getMaterialList(
             $this->jobMap[$validated['job']],
             $validated['minLevel'],
-            $validated['maxLevel']
+            $validated['maxLevel'],
+            (bool) ($validated['includeSpecialSources'] ?? $validated['includeDungeonDrops'] ?? true)
         );
     }
 
@@ -55,7 +57,8 @@ class CraftingController extends Controller
         $materials = $xivApi->getExpandedMaterialList(
             $this->jobMap[$validated['job']],
             $validated['minLevel'],
-            $validated['maxLevel']
+            $validated['maxLevel'],
+            (bool) ($validated['includeSpecialSources'] ?? $validated['includeDungeonDrops'] ?? true)
         );
 
         return $materialSourceService->enrichMaterials($materials);
@@ -64,6 +67,8 @@ class CraftingController extends Controller
     private function validateCraftingRequest(Request $request): array
     {
         return $request->validate([
+            'includeDungeonDrops' => ['sometimes', 'boolean'],
+            'includeSpecialSources' => ['sometimes', 'boolean'],
             'job' => [
                 'required',
                 'string',
@@ -94,7 +99,8 @@ class CraftingController extends Controller
         return $xivApi->getCraftingMaterialList(
             $this->jobMap[$validated['job']],
             $validated['minLevel'],
-            $validated['maxLevel']
+            $validated['maxLevel'],
+            (bool) ($validated['includeSpecialSources'] ?? $validated['includeDungeonDrops'] ?? true)
         );
     }
 }

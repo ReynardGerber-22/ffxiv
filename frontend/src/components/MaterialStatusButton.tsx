@@ -2,13 +2,17 @@ export type MaterialStatus = "default" | "collecting" | "collected";
 
 type MaterialStatusButtonProps = {
   itemName: string;
+  isCrafting?: boolean;
   status: MaterialStatus;
   onClick: () => void;
 };
 
-export const MaterialStatusButton = ({ itemName, status, onClick }: MaterialStatusButtonProps) => {
-  const statusLabel = status === "default" ? "To collect" : status === "collecting" ? "Collecting" : "Collected";
-  const nextStatusLabel = status === "default" ? "collecting" : status === "collecting" ? "collected" : "to collect";
+export const MaterialStatusButton = ({ itemName, status, onClick, isCrafting = false }: MaterialStatusButtonProps) => {
+  const labels = isCrafting
+    ? { default: "To craft", collecting: "Crafting", collected: "Crafted" }
+    : { default: "To collect", collecting: "Collecting", collected: "Collected" };
+  const statusLabel = labels[status];
+  const nextStatusLabel = labels[status === "default" ? "collecting" : status === "collecting" ? "collected" : "default"].toLowerCase();
 
   return (
           <button

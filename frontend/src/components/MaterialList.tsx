@@ -8,9 +8,10 @@ type MaterialListProps = {
     title: string;
     materials: Material[];
     storageKey: string;
+    isCrafting?: boolean;
 };
 
-type SortOrder = "name-asc" | "name-desc" | "quantity-desc" | "quantity-asc" | "location";
+type SortOrder = "name-asc" | "name-desc" | "quantity-desc" | "quantity-asc" | "location" | "profession";
 
 type LocationGroup = {
     territory: string;
@@ -64,6 +65,7 @@ export const MaterialList = ({
     title,
     materials,
     storageKey,
+    isCrafting = false,
 }: MaterialListProps) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const [sortOrder, setSortOrder] = useState<SortOrder>("name-asc");
@@ -89,6 +91,13 @@ export const MaterialList = ({
             [...materials].sort((a, b) => {
                 const alphabetical = a.name.localeCompare(b.name);
                 switch (sortOrder) {
+                    case "profession": {
+                        const professionA = a.profession?.trim() ?? "";
+                        const professionB = b.profession?.trim() ?? "";
+                        if (!professionA && professionB) return 1;
+                        if (professionA && !professionB) return -1;
+                        return professionA.localeCompare(professionB) || alphabetical;
+                    }
                     case "name-desc": return -alphabetical;
                     case "quantity-desc": return b.quantity - a.quantity || alphabetical;
                     case "quantity-asc": return a.quantity - b.quantity || alphabetical;
@@ -125,6 +134,7 @@ export const MaterialList = ({
         <MaterialRow
             key={material.id}
             material={material}
+            isCrafting={isCrafting}
             status={materialStatuses[material.id] ?? "default"}
             isGatheringExpanded={expandedGathering[material.id] ?? false}
             isFishingExpanded={expandedFishing[material.id] ?? false}
@@ -187,6 +197,7 @@ export const MaterialList = ({
                         <option value="name-desc">Name: Z–A</option>
                         <option value="quantity-desc">Quantity: highest first</option>
                         <option value="quantity-asc">Quantity: lowest first</option>
+                        {isCrafting && <option value="profession">Profession: A–Z</option>}
                         <option value="location">Location</option>
                     </select>
                 </label>

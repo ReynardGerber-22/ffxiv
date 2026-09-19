@@ -15,6 +15,7 @@ export type { MaterialStatus } from "./MaterialStatusButton";
 
 type MaterialRowProps = {
     material: Material;
+    isCrafting?: boolean;
     status: MaterialStatus;
     isGatheringExpanded: boolean;
     isFishingExpanded: boolean;
@@ -27,6 +28,7 @@ type MaterialRowProps = {
 
 export const MaterialRow = ({
   material,
+  isCrafting = false,
   status,
   isGatheringExpanded,
   isFishingExpanded,
@@ -90,11 +92,12 @@ export const MaterialRow = ({
             <span className={`block break-words font-medium ${isCollected ? "text-slate-500 line-through" : "text-slate-200"}`}>
               {material.name}
             </span>
+            {isCrafting && <span className="mt-1 block text-xs leading-relaxed text-slate-400">{material.profession?.trim() || "Profession unavailable — recalculate materials"}</span>}
             {hasDetails && <span className="mt-1 block text-xs leading-relaxed text-slate-400">{sourceSummary}</span>}
           </span>
         </button>
         <div className="flex flex-col-reverse items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
-          <MaterialStatusButton itemName={material.name} status={status} onClick={onCycleStatus} />
+          <MaterialStatusButton itemName={material.name} status={status} isCrafting={isCrafting} onClick={onCycleStatus} />
           <span className="w-20 rounded-md bg-slate-800 px-2.5 py-1 text-center text-sm font-semibold tabular-nums text-slate-200">×{material.quantity}</span>
         </div>
       </div>

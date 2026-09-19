@@ -129,6 +129,7 @@ function App() {
 
             <MaterialList
               title="Craft These"
+              isCrafting
               key={progressKey(searchCriteria, "crafting")}
               storageKey={progressKey(searchCriteria, "crafting")}
               materials={craftingMaterials}

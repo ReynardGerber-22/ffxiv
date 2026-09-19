@@ -25,6 +25,7 @@ export type Material = {
   id: number;
   name: string;
   quantity: number;
+  profession?: string;
   gathering?: GatheringInfo[];
   fishing?: FishingInfo[];
   mobDrops?: MobDrop[];

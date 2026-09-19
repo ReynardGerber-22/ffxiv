@@ -30,6 +30,7 @@ export type Material = {
   fishing?: FishingInfo[];
   mobDrops?: MobDrop[];
   vendors?: VendorInfo[];
+  dungeons?: { id: number; name: string }[];
 };
 
 export type VendorInfo = {

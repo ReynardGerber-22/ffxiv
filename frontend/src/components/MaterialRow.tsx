@@ -6,6 +6,7 @@ import {
 } from "./GatheringLocations";
 import { MobDropLocations, MobDropLocationsToggle } from "./MobDropLocations";
 import { FishingLocations, FishingLocationsToggle } from "./FishingLocations";
+import { DungeonLocations } from "./DungeonLocations";
 import { VendorLocations } from "./VendorLocations";
 
 import { SourceSection } from "./SourceSection";
@@ -55,6 +56,8 @@ export const MaterialRow = ({
   const mobDrops = material.mobDrops ?? [];
   const vendors = (material.vendors ?? []).filter((vendor) => vendor.name.trim());
 
+  const dungeons = (material.dungeons ?? []).filter((duty) => duty.name.trim());
+
   const shouldShowMobDrops = mobDrops.length > 0;
 
   const sourceSummary = [
@@ -64,6 +67,7 @@ export const MaterialRow = ({
     gatheringNodes.length > 0 ? "Gather" : null,
     fishingSpots.length > 0 ? "Fish" : null,
     shouldShowMobDrops ? "Mob drops" : null,
+    dungeons.length > 0 ? "Dungeon / Duty" : null,
   ].filter(Boolean).join("  •  ");
   const hasDetails = sourceSummary.length > 0;
   const isCollected = status === "collected";
@@ -119,6 +123,11 @@ export const MaterialRow = ({
               <SourceSection title="Fish">
                 <FishingLocations materialId={material.id} spots={fishingSpots} isCollected={isCollected} isExpanded={isFishingExpanded} />
                 <FishingLocationsToggle count={fishingSpots.length} isExpanded={isFishingExpanded} onToggle={onToggleFishing} />
+              </SourceSection>
+            )}
+            {dungeons.length > 0 && (
+              <SourceSection title="Dungeon / Duty">
+                <DungeonLocations dungeons={dungeons} />
               </SourceSection>
             )}
             {shouldShowMobDrops && (

@@ -39,6 +39,11 @@ class Item extends Model
         ];
     }
 
+    public function dungeonDrops(): HasMany
+    {
+        return $this->hasMany(DungeonDrop::class);
+    }
+
     public function mobDrops(): HasMany
     {
         return $this->hasMany(MobDrop::class);

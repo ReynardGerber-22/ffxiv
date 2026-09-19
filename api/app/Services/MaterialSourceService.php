@@ -9,6 +9,7 @@ class MaterialSourceService
         private MobDropService $mobDropService,
         private FishingService $fishingService,
         private VendorService $vendorService,
+        private DungeonDropService $dungeonDropService,
     ) {}
 
     public function enrichMaterials(array $materials): array
@@ -17,6 +18,8 @@ class MaterialSourceService
         $materials = $this->fishingService->enrichMaterials($materials);
         $materials = $this->mobDropService->enrichMaterials($materials);
 
-        return $this->vendorService->enrichMaterials($materials);
+        $materials = $this->vendorService->enrichMaterials($materials);
+
+        return $this->dungeonDropService->enrichMaterials($materials);
     }
 }

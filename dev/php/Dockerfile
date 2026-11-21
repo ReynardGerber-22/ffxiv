@@ -1,4 +1,4 @@
-FROM php:8.5.12-fpm
+FROM php:8.5.13-fpm
 
 ARG UID=1000
 ARG GID=1000
@@ -21,6 +21,17 @@ RUN groupadd --gid ${GID} app \
         --create-home \
         --shell /bin/bash \
         app
+
+RUN if [ -f /usr/local/etc/php/php.ini-production ]; then \
+        cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini; \
+    fi \
+    && printf '%s\n' \
+        'session.upload_progress.enabled=0' \
+        'zend.exception_ignore_args=1' \
+        'fatal_error_backtraces=0' \
+        'expose_php=Off' \
+        > /usr/local/etc/php/conf.d/security.ini \
+    && sed -i 's/^;*catch_workers_output = .*/catch_workers_output = no/' /usr/local/etc/php-fpm.d/www.conf
 
 # Copy Composer from the official Composer image
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
